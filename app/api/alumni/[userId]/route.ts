@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { userId: string } }
