@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   Phone,
   Search,
   Trophy,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,64 +28,127 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EducatorDialog } from "@/components/dialogs/educator-dialog";
+import { toast } from "sonner";
 
-// Sample data - replace with actual API call
-const educators = [
-  {
-    id: 1,
-    name: "Dr. Sarah Wilson",
-    avatar: "SW",
-    department: "Computer Science",
-    specialization: "Artificial Intelligence",
-    email: "sarah.wilson@example.com",
-    phone: "+1234567890",
-    experience: "15 years",
-    achievements: [
-      "Best Teacher Award 2023",
-      "Published 25 research papers",
-      "IEEE Senior Member",
-    ],
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Prof. Michael Brown",
-    avatar: "MB",
-    department: "Electrical Engineering",
-    specialization: "Power Systems",
-    email: "michael.brown@example.com",
-    phone: "+0987654321",
-    experience: "20 years",
-    achievements: [
-      "Excellence in Teaching 2022",
-      "5 Patents",
-      "Department Head",
-    ],
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Dr. Emily Chen",
-    avatar: "EC",
-    department: "Mathematics",
-    specialization: "Applied Mathematics",
-    email: "emily.chen@example.com",
-    phone: "+1122334455",
-    experience: "12 years",
-    achievements: [
-      "Research Excellence Award",
-      "Published 3 books",
-      "PhD Supervisor",
-    ],
-    status: "active",
-  },
-];
+interface Educator {
+  id: string;
+  prefix: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  subjects: string[];
+  serviceYears: string[];
+  education: string[];
+  achievements: string[];
+  photo: string;
+}
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
 
 export default function EducatorsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [educators, setEducators] = useState<Educator[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEducator, setSelectedEducator] = useState<Educator | undefined>();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    hasMore: false,
+  });
+
+  const fetchEducators = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch(
+        "https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/educators",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch educators");
+      }
+
+      const data = await response.json();
+      setEducators(data.educators);
+      setPagination(data.pagination);
+    } catch (error) {
+      console.error("Error fetching educators:", error);
+      toast.error("Failed to load educators");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEducators();
+  }, []);
+
+  const handleCreateEducator = () => {
+    setSelectedEducator(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditEducator = (educator: Educator) => {
+    setSelectedEducator(educator);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteEducator = async (educatorId: string) => {
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch(
+        `https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/educators/${educatorId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete educator");
+      }
+
+      toast.success("Educator deleted successfully");
+      fetchEducators();
+    } catch (error) {
+      console.error("Error deleting educator:", error);
+      toast.error("Failed to delete educator");
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  };
+
+  const getFullName = (educator: Educator) => {
+    return `${educator.prefix} ${educator.firstName} ${educator.lastName}`;
+  };
+
+  const getServiceYears = (years: string[]) => {
+    if (years.length === 2) {
+      return `${years[0]} - ${years[1]}`;
+    }
+    return years.join(", ");
+  };
 
   const filteredEducators = educators.filter((educator) =>
-    educator.name.toLowerCase().includes(searchQuery.toLowerCase())
+    `${educator.firstName} ${educator.lastName}`
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -92,7 +156,7 @@ export default function EducatorsPage() {
       <div className="flex-1 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Educators</h2>
-          <Button>
+          <Button onClick={handleCreateEducator}>
             <GraduationCap className="mr-2 h-4 w-4" />
             Add Educator
           </Button>
@@ -114,76 +178,111 @@ export default function EducatorsPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredEducators.map((educator) => (
-            <Card key={educator.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={`/avatars/${educator.id}.png`}
-                        alt={educator.name}
-                      />
-                      <AvatarFallback>{educator.avatar}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle>{educator.name}</CardTitle>
-                      <CardDescription>{educator.department}</CardDescription>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">Actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Profile</DropdownMenuItem>
-                      <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                      <DropdownMenuItem>Manage Documents</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Badge variant="outline">{educator.specialization}</Badge>
-                    <Badge variant="secondary" className="ml-2">
-                      {educator.experience}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-4 w-4" />
-                      <span>{educator.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-4 w-4" />
-                      <span>{educator.phone}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Achievements</span>
-                    </div>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                      {educator.achievements.map((achievement, index) => (
-                        <li key={index}>{achievement}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+          {loading ? (
+            <Card className="col-span-full">
+              <CardContent className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </CardContent>
             </Card>
-          ))}
+          ) : filteredEducators.length === 0 ? (
+            <Card className="col-span-full">
+              <CardContent className="text-center py-8 text-muted-foreground">
+                No educators found
+              </CardContent>
+            </Card>
+          ) : (
+            filteredEducators.map((educator) => (
+              <Card key={educator.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        {educator.photo ? (
+                          <AvatarImage src={educator.photo} alt={getFullName(educator)} />
+                        ) : (
+                          <AvatarFallback>
+                            {getInitials(educator.firstName, educator.lastName)}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <CardTitle>{getFullName(educator)}</CardTitle>
+                        <CardDescription>{educator.role}</CardDescription>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditEducator(educator)}>
+                          Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDeleteEducator(educator.id)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {educator.subjects.map((subject, index) => (
+                        <Badge key={index} variant="outline">
+                          {subject}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Education & Achievements</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          <strong>Education:</strong>
+                          <ul className="list-disc list-inside mt-1">
+                            {educator.education.map((edu, index) => (
+                              <li key={index}>{edu}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          <strong>Achievements:</strong>
+                          <ul className="list-disc list-inside mt-1">
+                            {educator.achievements.map((achievement, index) => (
+                              <li key={index}>{achievement}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        <strong>Service Years:</strong> {getServiceYears(educator.serviceYears)}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
+
+      <EducatorDialog
+        educator={selectedEducator}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={fetchEducators}
+      />
     </DashboardLayout>
   );
 }
