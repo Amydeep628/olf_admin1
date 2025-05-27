@@ -30,13 +30,15 @@ interface Event {
   title: string;
   description: string;
   date: string;
-  time: string;
   venue: string;
-  category: string;
-  capacity: string;
-  attendees: number;
-  status: string;
-  registrations: any[];
+  registrationsCount: number;
+  remainingCapacity: number;
+}
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 export default function EventsPage() {
@@ -45,6 +47,11 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    hasMore: false,
+  });
 
   const fetchEvents = async () => {
     try {
@@ -65,7 +72,8 @@ export default function EventsPage() {
       }
 
       const data = await response.json();
-      setEvents(data.events || []);
+      setEvents(data.events);
+      setPagination(data.pagination);
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.error("Failed to load events");
@@ -135,9 +143,9 @@ export default function EventsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Event</TableHead>
-                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead>Location</TableHead>
-                      <TableHead>Category</TableHead>
+                      <TableHead>Capacity</TableHead>
                       <TableHead>Registrations</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -162,25 +170,23 @@ export default function EventsPage() {
                         <TableRow key={event.id}>
                           <TableCell>
                             <div className="font-medium">{event.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {event.description}
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1">
-                              <div className="text-sm">
-                                {format(new Date(event.date), "PPP")}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {event.time}
-                              </div>
-                            </div>
+                            {format(new Date(event.date), "PPP")}
                           </TableCell>
                           <TableCell>{event.venue}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{event.category}</Badge>
+                            <Badge variant="outline">
+                              {event.remainingCapacity} spots left
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Users className="h-4 w-4 text-muted-foreground" />
-                              <span>{event.registrations?.length || 0}</span>
+                              <span>{event.registrationsCount}</span>
                             </div>
                           </TableCell>
                           <TableCell>

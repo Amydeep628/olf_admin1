@@ -22,13 +22,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,10 +29,8 @@ const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   date: z.string().min(1, "Date is required"),
-  time: z.string().min(1, "Time is required"),
   venue: z.string().min(1, "Venue is required"),
-  category: z.string().min(1, "Category is required"),
-  capacity: z.string().min(1, "Capacity is required"),
+  capacity: z.number().min(1, "Capacity must be at least 1"),
 });
 
 interface EventDialogProps {
@@ -48,10 +39,8 @@ interface EventDialogProps {
     title: string;
     description: string;
     date: string;
-    time: string;
     venue: string;
-    category: string;
-    capacity: string;
+    remainingCapacity: number;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -73,10 +62,8 @@ export function EventDialog({
       title: event?.title || "",
       description: event?.description || "",
       date: event?.date || "",
-      time: event?.time || "",
       venue: event?.venue || "",
-      category: event?.category || "",
-      capacity: event?.capacity || "",
+      capacity: event?.remainingCapacity || 0,
     },
   });
 
@@ -147,34 +134,19 @@ export function EventDialog({
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="venue"
@@ -190,36 +162,17 @@ export function EventDialog({
             />
             <FormField
               control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Networking">Networking</SelectItem>
-                      <SelectItem value="Workshop">Workshop</SelectItem>
-                      <SelectItem value="Seminar">Seminar</SelectItem>
-                      <SelectItem value="Conference">Conference</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="capacity"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Capacity</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Event capacity" {...field} />
+                    <Input 
+                      type="number" 
+                      placeholder="Event capacity" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
