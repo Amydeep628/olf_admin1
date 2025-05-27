@@ -24,27 +24,38 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const educatorSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  department: z.string().min(1, "Department is required"),
-  specialization: z.string().min(1, "Specialization is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(1, "Phone number is required"),
-  experience: z.string().min(1, "Experience is required"),
+  prefix: z.string().min(1, "Prefix is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  role: z.string().min(1, "Role is required"),
+  subjects: z.string().min(1, "Subjects are required"),
+  serviceYears: z.string().min(1, "Service years are required"),
+  education: z.string().min(1, "Education details are required"),
   achievements: z.string().min(1, "Achievements are required"),
+  photo: z.string().optional(),
 });
 
 interface EducatorDialogProps {
   educator?: {
     id: string;
-    name: string;
-    department: string;
-    specialization: string;
-    email: string;
-    phone: string;
-    experience: string;
+    prefix: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    subjects: string[];
+    serviceYears: string[];
+    education: string[];
     achievements: string[];
+    photo: string;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,36 +74,42 @@ export function EducatorDialog({
   const form = useForm<z.infer<typeof educatorSchema>>({
     resolver: zodResolver(educatorSchema),
     defaultValues: {
-      name: "",
-      department: "",
-      specialization: "",
-      email: "",
-      phone: "",
-      experience: "",
+      prefix: "",
+      firstName: "",
+      lastName: "",
+      role: "",
+      subjects: "",
+      serviceYears: "",
+      education: "",
       achievements: "",
+      photo: "",
     },
   });
 
   useEffect(() => {
     if (educator && open) {
       form.reset({
-        name: educator.name,
-        department: educator.department,
-        specialization: educator.specialization,
-        email: educator.email,
-        phone: educator.phone,
-        experience: educator.experience,
+        prefix: educator.prefix,
+        firstName: educator.firstName,
+        lastName: educator.lastName,
+        role: educator.role,
+        subjects: educator.subjects.join(", "),
+        serviceYears: educator.serviceYears.join(" - "),
+        education: educator.education.join("\n"),
         achievements: educator.achievements.join("\n"),
+        photo: educator.photo,
       });
     } else if (!educator && open) {
       form.reset({
-        name: "",
-        department: "",
-        specialization: "",
-        email: "",
-        phone: "",
-        experience: "",
+        prefix: "",
+        firstName: "",
+        lastName: "",
+        role: "",
+        subjects: "",
+        serviceYears: "",
+        education: "",
         achievements: "",
+        photo: "",
       });
     }
   }, [educator, open, form]);
@@ -102,9 +119,12 @@ export function EducatorDialog({
       setLoading(true);
       const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       
-      // Convert achievements string to array
+      // Format the data according to the API requirements
       const formattedValues = {
         ...values,
+        subjects: values.subjects.split(",").map(s => s.trim()),
+        serviceYears: values.serviceYears.split("-").map(y => y.trim()),
+        education: values.education.split("\n").filter(e => e.trim()),
         achievements: values.achievements.split("\n").filter(a => a.trim()),
       };
       
@@ -144,84 +164,141 @@ export function EducatorDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="prefix"
+                render={({ field }) => (
+                  <FormItem className="col-span-1">
+                    <FormLabel>Prefix</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Mr">Mr</SelectItem>
+                        <SelectItem value="Mrs">Mrs</SelectItem>
+                        <SelectItem value="Ms">Ms</SelectItem>
+                        <SelectItem value="Dr">Dr</SelectItem>
+                        <SelectItem value="Prof">Prof</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem className="col-span-1">
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="First name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem className="col-span-1">
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Last name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
             <FormField
               control={form.control}
-              name="name"
+              name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="principal">Principal</SelectItem>
+                      <SelectItem value="professor">Professor</SelectItem>
+                      <SelectItem value="assistant_professor">Assistant Professor</SelectItem>
+                      <SelectItem value="lecturer">Lecturer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="subjects"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subjects</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter name" {...field} />
+                    <Input 
+                      placeholder="Enter subjects (comma-separated)"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
-              name="department"
+              name="serviceYears"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department</FormLabel>
+                  <FormLabel>Service Years</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter department" {...field} />
+                    <Input 
+                      placeholder="Start year - End year (e.g., 2020 - 2024)"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
-              name="specialization"
+              name="education"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Specialization</FormLabel>
+                  <FormLabel>Education</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter specialization" {...field} />
+                    <Textarea 
+                      placeholder="Enter education details (one per line)"
+                      className="min-h-[100px]"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter email" type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter phone number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="experience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Experience</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter years of experience" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
             <FormField
               control={form.control}
               name="achievements"
@@ -239,6 +316,24 @@ export function EducatorDialog({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="photo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Photo URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Enter photo URL (optional)"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button
                 type="button"
