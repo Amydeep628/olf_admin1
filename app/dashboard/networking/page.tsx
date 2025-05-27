@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   Network,
   Search,
   Users,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,81 +30,117 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NetworkingDialog } from "@/components/dialogs/networking-dialog";
+import { toast } from "sonner";
 
-// Sample data - replace with actual API call
-const mentorshipPrograms = [
-  {
-    id: 1,
-    title: "Tech Career Guidance",
-    mentor: "John Smith",
-    industry: "Technology",
-    duration: "6 months",
-    participants: 15,
-    status: "active",
-    description:
-      "Guidance for students interested in technology careers...",
-  },
-  {
-    id: 2,
-    title: "Business Leadership",
-    mentor: "Sarah Johnson",
-    industry: "Management",
-    duration: "3 months",
-    participants: 10,
-    status: "upcoming",
-    description:
-      "Leadership development program for aspiring managers...",
-  },
-];
+interface Opportunity {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  category: string;
+  location: string;
+  company: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  deadline: string;
+  status: string;
+}
 
-const jobOpportunities = [
-  {
-    id: 1,
-    title: "Senior Software Engineer",
-    company: "Tech Corp",
-    location: "New York, USA",
-    type: "Full-time",
-    postedBy: "Alumni HR Team",
-    postedDate: "2024-01-15",
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Marketing Manager",
-    company: "Global Brands",
-    location: "London, UK",
-    type: "Full-time",
-    postedBy: "Career Cell",
-    postedDate: "2024-01-10",
-    status: "active",
-  },
-];
-
-const alumniConnections = [
-  {
-    id: 1,
-    title: "Tech Alumni Network",
-    members: 150,
-    category: "Technology",
-    events: 5,
-    status: "active",
-    description:
-      "Network of alumni working in technology sector...",
-  },
-  {
-    id: 2,
-    title: "Business Leaders Forum",
-    members: 100,
-    category: "Business",
-    events: 3,
-    status: "active",
-    description:
-      "Forum for alumni in leadership positions...",
-  },
-];
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
 
 export default function NetworkingPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | undefined>();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    hasMore: false,
+  });
+
+  const fetchOpportunities = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch(
+        "https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/networking",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch opportunities");
+      }
+
+      const data = await response.json();
+      setOpportunities(data.opportunities);
+      setPagination(data.pagination);
+    } catch (error) {
+      console.error("Error fetching opportunities:", error);
+      toast.error("Failed to load opportunities");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOpportunities();
+  }, []);
+
+  const handleCreateOpportunity = () => {
+    setSelectedOpportunity(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditOpportunity = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteOpportunity = async (opportunityId: string) => {
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch(
+        `https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/networking/${opportunityId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete opportunity");
+      }
+
+      toast.success("Opportunity deleted successfully");
+      fetchOpportunities();
+    } catch (error) {
+      console.error("Error deleting opportunity:", error);
+      toast.error("Failed to delete opportunity");
+    }
+  };
+
+  const filteredOpportunities = opportunities.filter((opportunity) =>
+    opportunity.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getOpportunitiesByType = (type: string) => {
+    return filteredOpportunities.filter((opportunity) => opportunity.type === type);
+  };
 
   return (
     <DashboardLayout>
@@ -111,13 +148,13 @@ export default function NetworkingPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Networking</h2>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleCreateOpportunity}>
               <Users className="mr-2 h-4 w-4" />
               Create Group
             </Button>
-            <Button>
+            <Button onClick={handleCreateOpportunity}>
               <Briefcase className="mr-2 h-4 w-4" />
-              Post Job
+              Post Opportunity
             </Button>
           </div>
         </div>
@@ -127,7 +164,7 @@ export default function NetworkingPage() {
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder="Search opportunities..."
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -137,182 +174,160 @@ export default function NetworkingPage() {
           <Button variant="outline">Filter</Button>
         </div>
 
-        <Tabs defaultValue="mentorship" className="space-y-4">
+        <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="all">All Opportunities</TabsTrigger>
+            <TabsTrigger value="jobs">Jobs</TabsTrigger>
             <TabsTrigger value="mentorship">Mentorship</TabsTrigger>
-            <TabsTrigger value="jobs">Job Opportunities</TabsTrigger>
-            <TabsTrigger value="connections">Alumni Connections</TabsTrigger>
+            <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="mentorship" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {mentorshipPrograms.map((program) => (
-                <Card key={program.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle>{program.title}</CardTitle>
-                        <CardDescription>
-                          Mentor: {program.mentor}
-                        </CardDescription>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Program</DropdownMenuItem>
-                          <DropdownMenuItem>Manage Participants</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        {program.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">{program.industry}</Badge>
-                        <Badge variant="secondary">{program.duration}</Badge>
-                        <Badge
-                          variant={
-                            program.status === "active"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {program.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>{program.participants} participants</span>
-                      </div>
-                    </div>
+          <TabsContent value="all" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {loading ? (
+                <Card className="col-span-full">
+                  <CardContent className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </CardContent>
                 </Card>
-              ))}
+              ) : filteredOpportunities.length === 0 ? (
+                <Card className="col-span-full">
+                  <CardContent className="text-center py-8 text-muted-foreground">
+                    No opportunities found
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredOpportunities.map((opportunity) => (
+                  <OpportunityCard
+                    key={opportunity.id}
+                    opportunity={opportunity}
+                    onEdit={handleEditOpportunity}
+                    onDelete={handleDeleteOpportunity}
+                  />
+                ))
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {jobOpportunities.map((job) => (
-                <Card key={job.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle>{job.title}</CardTitle>
-                        <CardDescription>{job.company}</CardDescription>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Posting</DropdownMenuItem>
-                          <DropdownMenuItem>View Applications</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">{job.type}</Badge>
-                        <Badge variant="secondary">{job.location}</Badge>
-                      </div>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Building className="h-4 w-4" />
-                          <span>Posted by: {job.postedBy}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            Posted on:{" "}
-                            {new Date(job.postedDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {getOpportunitiesByType("job").map((opportunity) => (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onEdit={handleEditOpportunity}
+                  onDelete={handleDeleteOpportunity}
+                />
               ))}
             </div>
           </TabsContent>
 
-          <TabsContent value="connections" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {alumniConnections.map((connection) => (
-                <Card key={connection.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle>{connection.title}</CardTitle>
-                        <CardDescription>
-                          {connection.members} members
-                        </CardDescription>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Manage Members</DropdownMenuItem>
-                          <DropdownMenuItem>Schedule Event</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        {connection.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">{connection.category}</Badge>
-                        <Badge variant="secondary">
-                          {connection.events} upcoming events
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Network className="h-4 w-4" />
-                          <span>{connection.members} members</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <GraduationCap className="h-4 w-4" />
-                          <span>{connection.category}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          <TabsContent value="mentorship" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {getOpportunitiesByType("mentorship").map((opportunity) => (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onEdit={handleEditOpportunity}
+                  onDelete={handleDeleteOpportunity}
+                />
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="collaboration" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {getOpportunitiesByType("collaboration").map((opportunity) => (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onEdit={handleEditOpportunity}
+                  onDelete={handleDeleteOpportunity}
+                />
               ))}
             </div>
           </TabsContent>
         </Tabs>
       </div>
+
+      <NetworkingDialog
+        opportunity={selectedOpportunity}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={fetchOpportunities}
+      />
     </DashboardLayout>
+  );
+}
+
+interface OpportunityCardProps {
+  opportunity: Opportunity;
+  onEdit: (opportunity: Opportunity) => void;
+  onDelete: (id: string) => void;
+}
+
+function OpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <CardTitle>{opportunity.title}</CardTitle>
+            <CardDescription>{opportunity.company}</CardDescription>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(opportunity)}>
+                Edit Details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => onDelete(opportunity.id)}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {opportunity.description}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">{opportunity.category}</Badge>
+            <Badge variant="secondary">{opportunity.type}</Badge>
+            <Badge
+              variant={
+                opportunity.status === "active" ? "default" : "secondary"
+              }
+            >
+              {opportunity.status}
+            </Badge>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Building className="h-4 w-4" />
+              <span>{opportunity.location}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>Deadline: {new Date(opportunity.deadline).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>{opportunity.contactPerson}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
