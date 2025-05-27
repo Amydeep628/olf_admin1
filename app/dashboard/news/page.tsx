@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArticleDialog } from "@/components/dialogs/article-dialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 interface Article {
   id: string;
@@ -120,6 +120,15 @@ export default function NewsPage() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = parseISO(dateString);
+      return isValid(date) ? format(date, "PPP") : "No date available";
+    } catch {
+      return "No date available";
+    }
+  };
+
   const filteredArticles = articles.filter((article) =>
     article.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -173,7 +182,7 @@ export default function NewsPage() {
                         {article.title}
                       </CardTitle>
                       <CardDescription>
-                        {format(new Date(article.date), "PPP")}
+                        {formatDate(article.date)}
                       </CardDescription>
                     </div>
                     <DropdownMenu>
