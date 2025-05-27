@@ -14,25 +14,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CalendarPlus, Users, Loader2 } from "lucide-react";
+import { CalendarPlus, Users, Loader2, MoreVertical } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { EventDialog } from "@/components/dialogs/event-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Event {
   id: string;
   title: string;
+  description: string;
   date: string;
   time: string;
-  location: string;
+  venue: string;
   category: string;
-  registrations: number;
+  capacity: string;
+  attendees: number;
   status: string;
+  registrations: any[];
 }
 
 export default function EventsPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<Event | undefined>();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const fetchEvents = async () => {
     try {
@@ -53,7 +65,7 @@ export default function EventsPage() {
       }
 
       const data = await response.json();
-      setEvents(data.events);
+      setEvents(data.events || []);
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.error("Failed to load events");
@@ -67,8 +79,38 @@ export default function EventsPage() {
   }, []);
 
   const handleCreateEvent = () => {
-    // TODO: Implement create event dialog
-    toast.info("Create event functionality coming soon!");
+    setSelectedEvent(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setSelectedEvent(event);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const response = await fetch(
+        `https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/events/${eventId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete event");
+      }
+
+      toast.success("Event deleted successfully");
+      fetchEvents();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event");
+    }
   };
 
   return (
@@ -97,12 +139,13 @@ export default function EventsPage() {
                       <TableHead>Location</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Registrations</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8">
+                        <TableCell colSpan={6} className="text-center py-8">
                           <div className="flex items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
@@ -110,7 +153,7 @@ export default function EventsPage() {
                       </TableRow>
                     ) : events.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8">
+                        <TableCell colSpan={6} className="text-center py-8">
                           No events found
                         </TableCell>
                       </TableRow>
@@ -130,15 +173,36 @@ export default function EventsPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>{event.location}</TableCell>
+                          <TableCell>{event.venue}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{event.category}</Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Users className="h-4 w-4 text-muted-foreground" />
-                              <span>{event.registrations}</span>
+                              <span>{event.registrations?.length || 0}</span>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                  <span className="sr-only">Actions</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditEvent(event)}>
+                                  Edit Event
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                >
+                                  Delete Event
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
@@ -164,6 +228,13 @@ export default function EventsPage() {
           </Card>
         </div>
       </div>
+
+      <EventDialog
+        event={selectedEvent}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSuccess={fetchEvents}
+      />
     </DashboardLayout>
   );
 }
