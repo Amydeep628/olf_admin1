@@ -48,16 +48,16 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
           ...profile,
           areasOfExpertise: profile.areasOfExpertise?.map((item: any) => 
             typeof item === 'object' && item.value ? item.value : String(item || '')
-          ) || [],
+          ).filter((item: string) => item.trim() !== '') || [],
           education: profile.education?.map((item: any) => 
             typeof item === 'object' && item.value ? item.value : String(item || '')
-          ) || [],
+          ).filter((item: string) => item.trim() !== '') || [],
           experience: profile.experience?.map((item: any) => 
             typeof item === 'object' && item.value ? item.value : String(item || '')
-          ) || [],
+          ).filter((item: string) => item.trim() !== '') || [],
           achievements: profile.achievements?.map((item: any) => 
             typeof item === 'object' && item.value ? item.value : String(item || '')
-          ) || [],
+          ).filter((item: string) => item.trim() !== '') || [],
         };
         
         setAlumni(transformedProfile);
@@ -169,29 +169,31 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
                     <dt className="text-sm text-muted-foreground">Name</dt>
-                    <dd className="text-sm font-medium">{alumni.name}</dd>
+                    <dd className="text-sm font-medium">{alumni.name || 'Not provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">Batch</dt>
-                    <dd className="text-sm font-medium">{alumni.batch}</dd>
+                    <dd className="text-sm font-medium">{alumni.batch || 'Not provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">Email</dt>
-                    <dd className="text-sm font-medium">{alumni.email}</dd>
+                    <dd className="text-sm font-medium">{alumni.email || 'Not provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">Mobile</dt>
-                    <dd className="text-sm font-medium">{alumni.mobile}</dd>
+                    <dd className="text-sm font-medium">{alumni.mobile || 'Not provided'}</dd>
                   </div>
                 </dl>
               </div>
 
               {/* Bio */}
-              {alumni.bio && (
+              {alumni.bio && alumni.bio.trim() !== '' && (
                 <div>
                   <h3 className="text-lg font-semibold">Bio</h3>
                   <Separator className="my-2" />
-                  <p className="text-sm leading-relaxed">{alumni.bio}</p>
+                  <div className="p-3 bg-muted/50 rounded-md">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{alumni.bio}</p>
+                  </div>
                 </div>
               )}
 
@@ -206,17 +208,17 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                 <h3 className="text-lg font-semibold">Location</h3>
                 <Separator className="my-2" />
                 <dl className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="col-span-2">
                     <dt className="text-sm text-muted-foreground">Address</dt>
-                    <dd className="text-sm font-medium">{alumni.address}</dd>
+                    <dd className="text-sm font-medium">{alumni.address || 'Not provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">City</dt>
-                    <dd className="text-sm font-medium">{alumni.city}</dd>
+                    <dd className="text-sm font-medium">{alumni.city || 'Not provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">State</dt>
-                    <dd className="text-sm font-medium">{alumni.state}</dd>
+                    <dd className="text-sm font-medium">{alumni.state || 'Not provided'}</dd>
                   </div>
                 </dl>
               </div>
@@ -237,11 +239,11 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                 <dl className="grid grid-cols-2 gap-4">
                   <div>
                     <dt className="text-sm text-muted-foreground">Membership Status</dt>
-                    <dd className="text-sm font-medium">{alumni.membership_status}</dd>
+                    <dd className="text-sm font-medium">{alumni.membership_status || 'Not provided'}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">Membership Number</dt>
-                    <dd className="text-sm font-medium">{alumni.membership_no}</dd>
+                    <dd className="text-sm font-medium">{alumni.membership_no || 'Not provided'}</dd>
                   </div>
                 </dl>
               </div>
