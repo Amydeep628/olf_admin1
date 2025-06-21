@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import {
   Dialog,
@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +34,14 @@ const formSchema = z.object({
   address: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().min(1, "State is required"),
+  bio: z.string().optional(),
+  areasOfExpertise: z.array(z.object({ value: z.string() })).optional(),
+  linkedin: z.string().optional(),
+  twitter: z.string().optional(),
+  website: z.string().optional(),
+  education: z.array(z.object({ value: z.string() })).optional(),
+  experience: z.array(z.object({ value: z.string() })).optional(),
+  achievements: z.array(z.object({ value: z.string() })).optional(),
 });
 
 interface EditAlumniDialogProps {
@@ -53,6 +62,48 @@ export function EditAlumniDialog({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      areasOfExpertise: [],
+      education: [],
+      experience: [],
+      achievements: [],
+    },
+  });
+
+  const {
+    fields: expertiseFields,
+    append: appendExpertise,
+    remove: removeExpertise,
+  } = useFieldArray({
+    control: form.control,
+    name: "areasOfExpertise",
+  });
+
+  const {
+    fields: educationFields,
+    append: appendEducation,
+    remove: removeEducation,
+  } = useFieldArray({
+    control: form.control,
+    name: "education",
+  });
+
+  const {
+    fields: experienceFields,
+    append: appendExperience,
+    remove: removeExperience,
+  } = useFieldArray({
+    control: form.control,
+    name: "experience",
+  });
+
+  const {
+    fields: achievementFields,
+    append: appendAchievement,
+    remove: removeAchievement,
+  } = useFieldArray({
+    control: form.control,
+    name: "achievements",
   });
 
   useEffect(() => {
@@ -75,17 +126,27 @@ export function EditAlumniDialog({
 
         if (!response.ok) throw new Error("Failed to fetch alumni details");
 
-        // Destructure the profile object out of the response
         const { profile } = await response.json();
 
-        // Reset the form with profile fields
+        // Transform arrays to the format expected by useFieldArray
+        const transformArray = (arr: string[] | undefined) => 
+          arr ? arr.map(value => ({ value })) : [];
+
         form.reset({
-          name: profile.name,
-          email: profile.email,
-          mobile: profile.mobile,
-          address: profile.address,
-          city: profile.city,
-          state: profile.state,
+          name: profile.name || "",
+          email: profile.email || "",
+          mobile: profile.mobile || "",
+          address: profile.address || "",
+          city: profile.city || "",
+          state: profile.state || "",
+          bio: profile.bio || "",
+          linkedin: profile.linkedin || "",
+          twitter: profile.twitter || "",
+          website: profile.website || "",
+          areasOfExpertise: transformArray(profile.areasOfExpertise),
+          education: transformArray(profile.education),
+          experience: transformArray(profile.experience),
+          achievements: transformArray(profile.achievements),
         });
       } catch (error) {
         console.error("Error:", error);
@@ -103,6 +164,20 @@ export function EditAlumniDialog({
       setSaving(true);
       const token =
         localStorage.getItem("token") || sessionStorage.getItem("token");
+
+      // Transform field arrays back to string arrays
+      const transformFieldArray = (arr: { value: string }[] | undefined) =>
+        arr ? arr.map(item => item.value).filter(value => value.trim() !== "") : [];
+
+      const payload = {
+        ...values,
+        id: userId,
+        areasOfExpertise: transformFieldArray(values.areasOfExpertise),
+        education: transformFieldArray(values.education),
+        experience: transformFieldArray(values.experience),
+        achievements: transformFieldArray(values.achievements),
+      };
+
       const response = await fetch(
         `https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/users/profile`,
         {
@@ -111,7 +186,7 @@ export function EditAlumniDialog({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ ...values, id: userId }),
+          body: JSON.stringify(payload),
         }
       );
 
@@ -128,9 +203,64 @@ export function EditAlumniDialog({
     }
   };
 
+  const renderFieldArray = (
+    fields: any[],
+    append: (value: any) => void,
+    remove: (index: number) => void,
+    name: string,
+    label: string,
+    placeholder: string
+  ) => (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium">{label}</h3>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => append({ value: "" })}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {fields.map((field, index) => (
+          <div key={field.id} className="flex gap-2">
+            <FormField
+              control={form.control}
+              name={`${name}.${index}.value` as any}
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input placeholder={placeholder} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => remove(index)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {fields.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No {label.toLowerCase()} added yet. Click "Add" to add one.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Alumni Details</DialogTitle>
         </DialogHeader>
@@ -142,12 +272,11 @@ export function EditAlumniDialog({
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <ScrollArea className="flex-1 pr-4">
+              <ScrollArea className="flex-1 pr-4 max-h-[60vh]">
                 <div className="space-y-6">
+                  {/* Personal Information */}
                   <div>
-                    <h3 className="text-sm font-medium">
-                      Personal Information
-                    </h3>
+                    <h3 className="text-sm font-medium">Personal Information</h3>
                     <Separator className="my-2" />
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
@@ -192,6 +321,90 @@ export function EditAlumniDialog({
                     </div>
                   </div>
 
+                  {/* Bio */}
+                  <div>
+                    <h3 className="text-sm font-medium">Bio</h3>
+                    <Separator className="my-2" />
+                    <FormField
+                      control={form.control}
+                      name="bio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Tell us about yourself..."
+                              className="min-h-[100px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Areas of Expertise */}
+                  <div>
+                    <h3 className="text-sm font-medium">Areas of Expertise</h3>
+                    <Separator className="my-2" />
+                    {renderFieldArray(
+                      expertiseFields,
+                      appendExpertise,
+                      removeExpertise,
+                      "areasOfExpertise",
+                      "Areas of Expertise",
+                      "e.g., Software Development, Data Science"
+                    )}
+                  </div>
+
+                  {/* Social Links */}
+                  <div>
+                    <h3 className="text-sm font-medium">Social Links</h3>
+                    <Separator className="my-2" />
+                    <div className="grid grid-cols-1 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="linkedin"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>LinkedIn URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://linkedin.com/in/username" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="twitter"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Twitter URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://twitter.com/username" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="website"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Website URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://yourwebsite.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Location */}
                   <div>
                     <h3 className="text-sm font-medium">Location</h3>
                     <Separator className="my-2" />
@@ -236,6 +449,48 @@ export function EditAlumniDialog({
                         )}
                       />
                     </div>
+                  </div>
+
+                  {/* Education */}
+                  <div>
+                    <h3 className="text-sm font-medium">Education</h3>
+                    <Separator className="my-2" />
+                    {renderFieldArray(
+                      educationFields,
+                      appendEducation,
+                      removeEducation,
+                      "education",
+                      "Education",
+                      "e.g., B.Tech Computer Science, XYZ University (2018-2022)"
+                    )}
+                  </div>
+
+                  {/* Experience */}
+                  <div>
+                    <h3 className="text-sm font-medium">Experience</h3>
+                    <Separator className="my-2" />
+                    {renderFieldArray(
+                      experienceFields,
+                      appendExperience,
+                      removeExperience,
+                      "experience",
+                      "Experience",
+                      "e.g., Software Engineer at ABC Corp (2022-Present)"
+                    )}
+                  </div>
+
+                  {/* Achievements */}
+                  <div>
+                    <h3 className="text-sm font-medium">Achievements</h3>
+                    <Separator className="my-2" />
+                    {renderFieldArray(
+                      achievementFields,
+                      appendAchievement,
+                      removeAchievement,
+                      "achievements",
+                      "Achievements",
+                      "e.g., Winner of National Coding Competition 2023"
+                    )}
                   </div>
                 </div>
               </ScrollArea>

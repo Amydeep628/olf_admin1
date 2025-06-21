@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, ExternalLink, Linkedin, Twitter, Globe } from "lucide-react";
 
 interface ViewAlumniDialogProps {
   userId: string;
@@ -51,9 +53,86 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
     fetchAlumniDetails();
   }, [userId, open]);
 
+  const renderMultipleEntries = (entries: string[] | undefined, title: string) => {
+    if (!entries || entries.length === 0) return null;
+    
+    return (
+      <div>
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <Separator className="my-2" />
+        <div className="space-y-2">
+          {entries.map((entry, index) => (
+            <div key={index} className="p-3 bg-muted/50 rounded-md">
+              <p className="text-sm">{entry}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderAreasOfExpertise = (areas: string[] | undefined) => {
+    if (!areas || areas.length === 0) return null;
+    
+    return (
+      <div>
+        <h3 className="text-lg font-semibold">Areas of Expertise</h3>
+        <Separator className="my-2" />
+        <div className="flex flex-wrap gap-2">
+          {areas.map((area, index) => (
+            <Badge key={index} variant="secondary">
+              {area}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSocialLinks = () => {
+    const hasLinks = alumni?.linkedin || alumni?.twitter || alumni?.website;
+    if (!hasLinks) return null;
+
+    return (
+      <div>
+        <h3 className="text-lg font-semibold">Social Links</h3>
+        <Separator className="my-2" />
+        <div className="flex flex-wrap gap-2">
+          {alumni.linkedin && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={alumni.linkedin} target="_blank" rel="noopener noreferrer">
+                <Linkedin className="h-4 w-4 mr-2" />
+                LinkedIn
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
+            </Button>
+          )}
+          {alumni.twitter && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={alumni.twitter} target="_blank" rel="noopener noreferrer">
+                <Twitter className="h-4 w-4 mr-2" />
+                Twitter
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
+            </Button>
+          )}
+          {alumni.website && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={alumni.website} target="_blank" rel="noopener noreferrer">
+                <Globe className="h-4 w-4 mr-2" />
+                Website
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </a>
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Alumni Profile</DialogTitle>
         </DialogHeader>
@@ -65,6 +144,7 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
         ) : alumni ? (
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-6">
+              {/* Personal Information */}
               <div>
                 <h3 className="text-lg font-semibold">Personal Information</h3>
                 <Separator className="my-2" />
@@ -88,6 +168,22 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                 </dl>
               </div>
 
+              {/* Bio */}
+              {alumni.bio && (
+                <div>
+                  <h3 className="text-lg font-semibold">Bio</h3>
+                  <Separator className="my-2" />
+                  <p className="text-sm leading-relaxed">{alumni.bio}</p>
+                </div>
+              )}
+
+              {/* Areas of Expertise */}
+              {renderAreasOfExpertise(alumni.areasOfExpertise)}
+
+              {/* Social Links */}
+              {renderSocialLinks()}
+
+              {/* Location */}
               <div>
                 <h3 className="text-lg font-semibold">Location</h3>
                 <Separator className="my-2" />
@@ -107,6 +203,16 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                 </dl>
               </div>
 
+              {/* Education */}
+              {renderMultipleEntries(alumni.education, "Education")}
+
+              {/* Experience */}
+              {renderMultipleEntries(alumni.experience, "Experience")}
+
+              {/* Achievements */}
+              {renderMultipleEntries(alumni.achievements, "Achievements")}
+
+              {/* Membership Details */}
               <div>
                 <h3 className="text-lg font-semibold">Membership Details</h3>
                 <Separator className="my-2" />
@@ -121,18 +227,6 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                   </div>
                 </dl>
               </div>
-
-              {alumni.achievements && alumni.achievements.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold">Achievements</h3>
-                  <Separator className="my-2" />
-                  <ul className="list-disc list-inside space-y-1">
-                    {alumni.achievements.map((achievement: string, index: number) => (
-                      <li key={index} className="text-sm">{achievement}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           </ScrollArea>
         ) : (
