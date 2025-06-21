@@ -102,7 +102,7 @@ export function NetworkingDialog({
         contactPerson: opportunity.contactPerson,
         email: opportunity.email,
         phone: opportunity.phone,
-        deadline: opportunity?.deadline?.split('T')[0], // Format date for input
+        deadline: opportunity.deadline.split('T')[0], // Format date for input
       });
     } else if (!opportunity && open) {
       form.reset({
