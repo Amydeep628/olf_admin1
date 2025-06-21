@@ -260,20 +260,20 @@ export function EditAlumniDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[95vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Edit Alumni Details</DialogTitle>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 flex-1">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <ScrollArea className="flex-1 pr-4 max-h-[60vh]">
-                <div className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+              <ScrollArea className="flex-1 pr-4">
+                <div className="space-y-6 pb-4">
                   {/* Personal Information */}
                   <div>
                     <h3 className="text-sm font-medium">Personal Information</h3>
@@ -495,7 +495,7 @@ export function EditAlumniDialog({
                 </div>
               </ScrollArea>
 
-              <DialogFooter>
+              <DialogFooter className="flex-shrink-0 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
