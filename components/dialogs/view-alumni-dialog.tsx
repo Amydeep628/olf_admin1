@@ -42,7 +42,25 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
 
         if (!response.ok) throw new Error('Failed to fetch alumni details');
         const { profile } = await response.json();
-        setAlumni(profile);
+        
+        // Transform array fields to ensure they contain only strings
+        const transformedProfile = {
+          ...profile,
+          areasOfExpertise: profile.areasOfExpertise?.map((item: any) => 
+            typeof item === 'object' && item.value ? item.value : String(item || '')
+          ) || [],
+          education: profile.education?.map((item: any) => 
+            typeof item === 'object' && item.value ? item.value : String(item || '')
+          ) || [],
+          experience: profile.experience?.map((item: any) => 
+            typeof item === 'object' && item.value ? item.value : String(item || '')
+          ) || [],
+          achievements: profile.achievements?.map((item: any) => 
+            typeof item === 'object' && item.value ? item.value : String(item || '')
+          ) || [],
+        };
+        
+        setAlumni(transformedProfile);
       } catch (error) {
         console.error('Error:', error);
       } finally {
