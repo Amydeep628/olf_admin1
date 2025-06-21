@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Linkedin, Twitter, Globe } from "lucide-react";
+import { Loader2, ExternalLink, Linkedin, Twitter, Globe, Award, Users } from "lucide-react";
 
 interface ViewAlumniDialogProps {
   userId: string;
@@ -107,6 +107,32 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
     );
   };
 
+  const renderSpecialDesignations = () => {
+    const hasDesignations = alumni?.distinguishedAlumni || alumni?.batchAmbassadors;
+    if (!hasDesignations) return null;
+
+    return (
+      <div>
+        <h3 className="text-lg font-semibold">Special Designations</h3>
+        <Separator className="my-2" />
+        <div className="flex flex-wrap gap-2">
+          {alumni.distinguishedAlumni && (
+            <Badge variant="default" className="flex items-center gap-1">
+              <Award className="h-3 w-3" />
+              Distinguished Alumni
+            </Badge>
+          )}
+          {alumni.batchAmbassadors && (
+            <Badge variant="default" className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              Batch Ambassador
+            </Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderSocialLinks = () => {
     const hasLinks = alumni?.linkedin || alumni?.twitter || alumni?.website;
     if (!hasLinks) return null;
@@ -185,6 +211,9 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
                   </div>
                 </dl>
               </div>
+
+              {/* Special Designations */}
+              {renderSpecialDesignations()}
 
               {/* Bio */}
               {alumni.bio && alumni.bio.trim() !== '' && (

@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,6 +43,8 @@ const formSchema = z.object({
   education: z.array(z.object({ value: z.string() })).optional(),
   experience: z.array(z.object({ value: z.string() })).optional(),
   achievements: z.array(z.object({ value: z.string() })).optional(),
+  distinguishedAlumni: z.boolean().default(false),
+  batchAmbassadors: z.boolean().default(false),
 });
 
 interface EditAlumniDialogProps {
@@ -67,6 +70,8 @@ export function EditAlumniDialog({
       education: [],
       experience: [],
       achievements: [],
+      distinguishedAlumni: false,
+      batchAmbassadors: false,
     },
   });
 
@@ -147,6 +152,8 @@ export function EditAlumniDialog({
           education: transformArray(profile.education),
           experience: transformArray(profile.experience),
           achievements: transformArray(profile.achievements),
+          distinguishedAlumni: profile.distinguishedAlumni || false,
+          batchAmbassadors: profile.batchAmbassadors || false,
         });
       } catch (error) {
         console.error("Error:", error);
@@ -315,6 +322,48 @@ export function EditAlumniDialog({
                               <Input {...field} />
                             </FormControl>
                             <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Special Designations */}
+                  <div>
+                    <h3 className="text-sm font-medium">Special Designations</h3>
+                    <Separator className="my-2" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="distinguishedAlumni"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Distinguished Alumni</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="batchAmbassadors"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Batch Ambassadors</FormLabel>
+                            </div>
                           </FormItem>
                         )}
                       />
