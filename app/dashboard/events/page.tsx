@@ -30,7 +30,10 @@ interface Event {
   title: string;
   description: string;
   date: string;
+  time: string;
   venue: string;
+  capacity: number;
+  category: string;
   registrationsCount: number;
   remainingCapacity: number;
 }
@@ -72,8 +75,23 @@ export default function EventsPage() {
       }
 
       const data = await response.json();
-      setEvents(data.events);
-      setPagination(data.pagination);
+      
+      // Transform the API response to match our Event interface
+      const transformedEvents = data.events?.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: event.date,
+        time: event.time || "00:00", // Default time if not provided
+        venue: event.venue,
+        capacity: event.capacity || 0, // Default capacity if not provided
+        category: event.category || "General", // Default category if not provided
+        registrationsCount: event.registrationsCount || 0,
+        remainingCapacity: event.remainingCapacity || event.capacity || 0,
+      })) || [];
+
+      setEvents(transformedEvents);
+      setPagination(data.pagination || { page: 1, limit: 10, hasMore: false });
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.error("Failed to load events");
