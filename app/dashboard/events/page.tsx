@@ -221,6 +221,18 @@ export default function EventsPage() {
     });
   };
 
+  // Get count of events for a specific date
+  const getEventCountForDate = (date: Date) => {
+    return events.filter(event => {
+      try {
+        const eventDate = parseISO(event.date);
+        return isSameDay(eventDate, date);
+      } catch {
+        return false;
+      }
+    }).length;
+  };
+
   const filteredEvents = getEventsForDate(date);
 
   const formatPrice = (price: number) => {
@@ -271,6 +283,11 @@ export default function EventsPage() {
             <CardHeader>
               <CardTitle>
                 {date ? `Events for ${format(date, "PPP")}` : "All Events"}
+                {date && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''})
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -433,7 +450,7 @@ export default function EventsPage() {
 
           <Card className="col-span-3">
             <CardHeader>
-              <CardTitle>Calendar</CardTitle>
+              <CardTitle>Event Calendar</CardTitle>
             </CardHeader>
             <CardContent>
               <Calendar
@@ -449,11 +466,14 @@ export default function EventsPage() {
                     backgroundColor: 'hsl(var(--primary))',
                     color: 'hsl(var(--primary-foreground))',
                     fontWeight: 'bold',
+                    position: 'relative',
                   },
                 }}
                 components={{
                   Day: ({ date: dayDate, ...props }) => {
-                    const hasEvent = hasEvents(dayDate);
+                    const eventCount = getEventCountForDate(dayDate);
+                    const hasEvent = eventCount > 0;
+                    
                     return (
                       <div
                         {...props}
@@ -461,10 +481,21 @@ export default function EventsPage() {
                           ${props.className || ''}
                           ${hasEvent ? 'relative' : ''}
                         `}
+                        style={{
+                          ...props.style,
+                          ...(hasEvent ? {
+                            backgroundColor: 'hsl(var(--primary))',
+                            color: 'hsl(var(--primary-foreground))',
+                            fontWeight: 'bold',
+                            borderRadius: '6px',
+                          } : {})
+                        }}
                       >
                         {props.children}
                         {hasEvent && (
-                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+                          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                            {eventCount}
+                          </div>
                         )}
                       </div>
                     );
@@ -472,14 +503,54 @@ export default function EventsPage() {
                 }}
               />
               
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-3">
                 <div className="text-sm font-medium">Legend:</div>
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 bg-primary rounded-full"></div>
-                  <span>Days with events</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 bg-primary rounded flex items-center justify-center">
+                      <span className="text-primary-foreground text-xs font-bold">1</span>
+                    </div>
+                    <span>Days with events (number shows event count)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 border-2 border-primary rounded"></div>
+                    <span>Selected date</span>
+                  </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Click on a date to filter events for that day
+                  Click on a date to filter events for that day. Highlighted dates show the number of events scheduled.
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm font-medium mb-2">Quick Stats</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Total Events:</span>
+                    <span className="font-medium">{events.length}</span>
+                  </div>
+                  {date && (
+                    <div className="flex justify-between">
+                      <span>Events Today:</span>
+                      <span className="font-medium">{filteredEvents.length}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>This Month:</span>
+                    <span className="font-medium">
+                      {events.filter(event => {
+                        try {
+                          const eventDate = parseISO(event.date);
+                          const now = new Date();
+                          return eventDate.getMonth() === now.getMonth() && 
+                                 eventDate.getFullYear() === now.getFullYear();
+                        } catch {
+                          return false;
+                        }
+                      }).length}
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>
