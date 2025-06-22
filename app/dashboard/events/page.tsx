@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CalendarPlus, Users, Loader2, MoreVertical } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { EventDialog } from "@/components/dialogs/event-dialog";
 import {
@@ -139,6 +139,45 @@ export default function EventsPage() {
     }
   };
 
+  // Get event dates for calendar highlighting
+  const getEventDates = () => {
+    return events.map(event => {
+      try {
+        return parseISO(event.date);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean) as Date[];
+  };
+
+  // Check if a date has events
+  const hasEvents = (date: Date) => {
+    return events.some(event => {
+      try {
+        const eventDate = parseISO(event.date);
+        return isSameDay(eventDate, date);
+      } catch {
+        return false;
+      }
+    });
+  };
+
+  // Get events for selected date
+  const getEventsForDate = (selectedDate: Date | undefined) => {
+    if (!selectedDate) return events;
+    
+    return events.filter(event => {
+      try {
+        const eventDate = parseISO(event.date);
+        return isSameDay(eventDate, selectedDate);
+      } catch {
+        return false;
+      }
+    });
+  };
+
+  const filteredEvents = getEventsForDate(date);
+
   return (
     <DashboardLayout>
       <div className="flex-1 space-y-4">
@@ -153,7 +192,9 @@ export default function EventsPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Card className="col-span-4">
             <CardHeader>
-              <CardTitle>Upcoming Events</CardTitle>
+              <CardTitle>
+                {date ? `Events for ${format(date, "PPP")}` : "All Events"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
@@ -177,14 +218,14 @@ export default function EventsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : events.length === 0 ? (
+                    ) : filteredEvents.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8">
-                          No events found
+                          {date ? "No events found for this date" : "No events found"}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      events.map((event) => (
+                      filteredEvents.map((event) => (
                         <TableRow key={event.id}>
                           <TableCell>
                             <div className="font-medium">{event.title}</div>
@@ -193,7 +234,12 @@ export default function EventsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {format(new Date(event.date), "PPP")}
+                            <div className="space-y-1">
+                              <div>{format(parseISO(event.date), "PPP")}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {event.time}
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>{event.venue}</TableCell>
                           <TableCell>
@@ -234,6 +280,28 @@ export default function EventsPage() {
                   </TableBody>
                 </Table>
               </div>
+              
+              {!date && (
+                <div className="mt-4 flex justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setDate(new Date())}
+                  >
+                    Filter by Today
+                  </Button>
+                </div>
+              )}
+              
+              {date && (
+                <div className="mt-4 flex justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setDate(undefined)}
+                  >
+                    Show All Events
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -247,7 +315,47 @@ export default function EventsPage() {
                 selected={date}
                 onSelect={setDate}
                 className="rounded-md border"
+                modifiers={{
+                  hasEvent: getEventDates(),
+                }}
+                modifiersStyles={{
+                  hasEvent: {
+                    backgroundColor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    fontWeight: 'bold',
+                  },
+                }}
+                components={{
+                  Day: ({ date: dayDate, ...props }) => {
+                    const hasEvent = hasEvents(dayDate);
+                    return (
+                      <div
+                        {...props}
+                        className={`
+                          ${props.className || ''}
+                          ${hasEvent ? 'relative' : ''}
+                        `}
+                      >
+                        {props.children}
+                        {hasEvent && (
+                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+                        )}
+                      </div>
+                    );
+                  },
+                }}
               />
+              
+              <div className="mt-4 space-y-2">
+                <div className="text-sm font-medium">Legend:</div>
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-3 h-3 bg-primary rounded-full"></div>
+                  <span>Days with events</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Click on a date to filter events for that day
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
