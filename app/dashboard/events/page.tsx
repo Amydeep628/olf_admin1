@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CalendarPlus, Users, Loader2, MoreVertical, IndianRupee } from "lucide-react";
+import { CalendarPlus, Users, Loader2, MoreVertical, IndianRupee, Target, TrendingUp } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { EventDialog } from "@/components/dialogs/event-dialog";
@@ -36,7 +36,13 @@ interface Event {
   category?: string;
   registrationsCount: number;
   remainingCapacity: number;
+  totalTargetedAmount?: number;
   pricing?: {
+    adult: number;
+    seniorCitizen: number;
+    children: number;
+  };
+  registrationBreakdown?: {
     adult: number;
     seniorCitizen: number;
     children: number;
@@ -87,20 +93,26 @@ export default function EventsPage() {
         title: event.title || "Untitled Event",
         description: event.description || "",
         date: event.date,
-        time: event.time || "00:00", // Default time if not provided
+        time: event.time || "00:00",
         venue: event.venue || "TBD",
-        capacity: event.capacity || event.remainingCapacity || 0, // Use remainingCapacity if capacity not provided
-        category: event.category || "General", // Default category if not provided
+        capacity: event.capacity || event.remainingCapacity || 0,
+        category: event.category || "General",
         registrationsCount: event.registrationsCount || 0,
         remainingCapacity: event.remainingCapacity || 0,
+        totalTargetedAmount: event.totalTargetedAmount || 0,
         pricing: event.pricing || {
+          adult: 0,
+          seniorCitizen: 0,
+          children: 0,
+        },
+        registrationBreakdown: event.registrationBreakdown || {
           adult: 0,
           seniorCitizen: 0,
           children: 0,
         },
       })) || [];
 
-      console.log("Transformed events:", transformedEvents); // Debug log
+      console.log("Transformed events:", transformedEvents);
       setEvents(transformedEvents);
       setPagination(data.pagination || { page: 1, limit: 10, hasMore: false });
     } catch (error) {
@@ -148,6 +160,28 @@ export default function EventsPage() {
       console.error("Error deleting event:", error);
       toast.error("Failed to delete event");
     }
+  };
+
+  // Calculate raised amount based on registrations and pricing
+  const calculateRaisedAmount = (event: Event) => {
+    if (!event.pricing || !event.registrationBreakdown) {
+      return 0;
+    }
+
+    const adultRevenue = (event.registrationBreakdown.adult || 0) * (event.pricing.adult || 0);
+    const seniorRevenue = (event.registrationBreakdown.seniorCitizen || 0) * (event.pricing.seniorCitizen || 0);
+    const childrenRevenue = (event.registrationBreakdown.children || 0) * (event.pricing.children || 0);
+
+    return adultRevenue + seniorRevenue + childrenRevenue;
+  };
+
+  // Calculate progress percentage towards target
+  const calculateProgress = (event: Event) => {
+    const raised = calculateRaisedAmount(event);
+    const target = event.totalTargetedAmount || 0;
+    
+    if (target === 0) return 0;
+    return Math.min((raised / target) * 100, 100);
   };
 
   // Get event dates for calendar highlighting
@@ -209,8 +243,16 @@ export default function EventsPage() {
     try {
       return format(parseISO(dateString), "PPP");
     } catch {
-      return dateString; // Return original string if parsing fails
+      return dateString;
     }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   return (
@@ -242,13 +284,14 @@ export default function EventsPage() {
                       <TableHead>Pricing</TableHead>
                       <TableHead>Capacity</TableHead>
                       <TableHead>Registrations</TableHead>
+                      <TableHead>Financial Progress</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           <div className="flex items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
@@ -256,70 +299,109 @@ export default function EventsPage() {
                       </TableRow>
                     ) : filteredEvents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           {date ? "No events found for this date" : "No events found"}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredEvents.map((event) => (
-                        <TableRow key={event.id}>
-                          <TableCell>
-                            <div className="font-medium">{event.title}</div>
-                            <div className="text-sm text-muted-foreground line-clamp-2">
-                              {event.description}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div>{formatEventDate(event.date)}</div>
-                              {event.time && (
-                                <div className="text-sm text-muted-foreground">
-                                  {event.time}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{event.venue}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <IndianRupee className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm">{getPriceRange(event.pricing)}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {event.remainingCapacity} spots left
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span>{event.registrationsCount}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                  <span className="sr-only">Actions</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditEvent(event)}>
-                                  Edit Event
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleDeleteEvent(event.id)}
-                                >
-                                  Delete Event
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      filteredEvents.map((event) => {
+                        const raisedAmount = calculateRaisedAmount(event);
+                        const progress = calculateProgress(event);
+                        const targetAmount = event.totalTargetedAmount || 0;
+
+                        return (
+                          <TableRow key={event.id}>
+                            <TableCell>
+                              <div className="font-medium">{event.title}</div>
+                              <div className="text-sm text-muted-foreground line-clamp-2">
+                                {event.description}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div>{formatEventDate(event.date)}</div>
+                                {event.time && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {event.time}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{event.venue}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <IndianRupee className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">{getPriceRange(event.pricing)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {event.remainingCapacity} spots left
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span>{event.registrationsCount}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-2">
+                                {targetAmount > 0 ? (
+                                  <>
+                                    <div className="flex items-center gap-2">
+                                      <Target className="h-4 w-4 text-muted-foreground" />
+                                      <span className="text-sm font-medium">
+                                        {formatCurrency(raisedAmount)} / {formatCurrency(targetAmount)}
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-secondary rounded-full h-2">
+                                      <div 
+                                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${progress}%` }}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <TrendingUp className="h-3 w-3 text-green-600" />
+                                      <span className="text-xs text-muted-foreground">
+                                        {progress.toFixed(1)}% achieved
+                                      </span>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <IndianRupee className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">
+                                      {formatCurrency(raisedAmount)} raised
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditEvent(event)}>
+                                    Edit Event
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => handleDeleteEvent(event.id)}
+                                  >
+                                    Delete Event
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>

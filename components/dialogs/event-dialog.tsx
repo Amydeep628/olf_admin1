@@ -35,6 +35,7 @@ const eventSchema = z.object({
   venue: z.string().min(1, "Venue is required"),
   capacity: z.number().min(1, "Capacity must be at least 1"),
   category: z.string().min(1, "Category is required"),
+  totalTargetedAmount: z.number().min(0, "Target amount must be 0 or greater"),
   pricing: z.object({
     adult: z.number().min(0, "Adult price must be 0 or greater"),
     seniorCitizen: z.number().min(0, "Senior citizen price must be 0 or greater"),
@@ -52,6 +53,7 @@ interface EventDialogProps {
     venue: string;
     capacity: number;
     category: string;
+    totalTargetedAmount?: number;
     pricing?: {
       adult: number;
       seniorCitizen: number;
@@ -82,6 +84,7 @@ export function EventDialog({
       venue: "",
       capacity: 0,
       category: "",
+      totalTargetedAmount: 0,
       pricing: {
         adult: 0,
         seniorCitizen: 0,
@@ -101,6 +104,7 @@ export function EventDialog({
         venue: event.venue,
         capacity: event.capacity,
         category: event.category,
+        totalTargetedAmount: event.totalTargetedAmount || 0,
         pricing: {
           adult: event.pricing?.adult || 0,
           seniorCitizen: event.pricing?.seniorCitizen || 0,
@@ -116,6 +120,7 @@ export function EventDialog({
         venue: "",
         capacity: 0,
         category: "",
+        totalTargetedAmount: 0,
         pricing: {
           adult: 0,
           seniorCitizen: 0,
@@ -269,28 +274,56 @@ export function EventDialog({
                   </div>
                 </div>
 
-                {/* Capacity */}
+                {/* Capacity & Target Amount */}
                 <div>
-                  <h3 className="text-sm font-medium">Capacity</h3>
+                  <h3 className="text-sm font-medium">Capacity & Financial Target</h3>
                   <Separator className="my-2" />
-                  <FormField
-                    control={form.control}
-                    name="capacity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Maximum Capacity</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Event capacity" 
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Maximum Capacity</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="Event capacity" 
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="totalTargetedAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Target Amount (₹)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+                              <Input 
+                                type="number" 
+                                placeholder="0" 
+                                className="pl-8"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <p>• Set target amount to 0 if no fundraising goal</p>
+                    <p>• This represents the total amount you aim to raise from this event</p>
+                  </div>
                 </div>
 
                 {/* Pricing */}
@@ -369,6 +402,7 @@ export function EventDialog({
                     <p>• Set price to 0 for free admission</p>
                     <p>• Senior citizens are typically 60+ years old</p>
                     <p>• Children are typically under 12 years old</p>
+                    <p>• Revenue from registrations will count towards the target amount</p>
                   </div>
                 </div>
               </div>
