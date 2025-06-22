@@ -120,8 +120,8 @@ export function EducatorDialog({
         lastName: educator.lastName,
         role: educator.role,
         contact: {
-          email: educator.contact.email,
-          phone: educator.contact.phone,
+          email: educator.contact?.email,
+          phone: educator.contact?.phone,
         },
         subjects: educator.subjects.join(", "),
         startYear: educator.serviceYears[0] || "",
