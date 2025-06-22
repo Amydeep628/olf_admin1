@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CalendarPlus, Users, Loader2, MoreVertical } from "lucide-react";
+import { CalendarPlus, Users, Loader2, MoreVertical, IndianRupee } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { EventDialog } from "@/components/dialogs/event-dialog";
@@ -36,6 +36,11 @@ interface Event {
   category: string;
   registrationsCount: number;
   remainingCapacity: number;
+  pricing?: {
+    adult: number;
+    seniorCitizen: number;
+    children: number;
+  };
 }
 
 interface PaginationInfo {
@@ -88,6 +93,11 @@ export default function EventsPage() {
         category: event.category || "General", // Default category if not provided
         registrationsCount: event.registrationsCount || 0,
         remainingCapacity: event.remainingCapacity || event.capacity || 0,
+        pricing: event.pricing || {
+          adult: 0,
+          seniorCitizen: 0,
+          children: 0,
+        },
       })) || [];
 
       setEvents(transformedEvents);
@@ -178,6 +188,22 @@ export default function EventsPage() {
 
   const filteredEvents = getEventsForDate(date);
 
+  const formatPrice = (price: number) => {
+    return price === 0 ? "Free" : `₹${price}`;
+  };
+
+  const getPriceRange = (pricing?: { adult: number; seniorCitizen: number; children: number }) => {
+    if (!pricing) return "Free";
+    
+    const prices = [pricing.adult, pricing.seniorCitizen, pricing.children];
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    
+    if (minPrice === 0 && maxPrice === 0) return "Free";
+    if (minPrice === maxPrice) return formatPrice(minPrice);
+    return `₹${minPrice} - ₹${maxPrice}`;
+  };
+
   return (
     <DashboardLayout>
       <div className="flex-1 space-y-4">
@@ -204,6 +230,7 @@ export default function EventsPage() {
                       <TableHead>Event</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Location</TableHead>
+                      <TableHead>Pricing</TableHead>
                       <TableHead>Capacity</TableHead>
                       <TableHead>Registrations</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
@@ -212,7 +239,7 @@ export default function EventsPage() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={7} className="text-center py-8">
                           <div className="flex items-center justify-center">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
@@ -220,7 +247,7 @@ export default function EventsPage() {
                       </TableRow>
                     ) : filteredEvents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={7} className="text-center py-8">
                           {date ? "No events found for this date" : "No events found"}
                         </TableCell>
                       </TableRow>
@@ -242,6 +269,12 @@ export default function EventsPage() {
                             </div>
                           </TableCell>
                           <TableCell>{event.venue}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <IndianRupee className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm">{getPriceRange(event.pricing)}</span>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">
                               {event.remainingCapacity} spots left

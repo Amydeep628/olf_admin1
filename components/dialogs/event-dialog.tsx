@@ -24,6 +24,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -33,6 +35,11 @@ const eventSchema = z.object({
   venue: z.string().min(1, "Venue is required"),
   capacity: z.number().min(1, "Capacity must be at least 1"),
   category: z.string().min(1, "Category is required"),
+  pricing: z.object({
+    adult: z.number().min(0, "Adult price must be 0 or greater"),
+    seniorCitizen: z.number().min(0, "Senior citizen price must be 0 or greater"),
+    children: z.number().min(0, "Children price must be 0 or greater"),
+  }),
 });
 
 interface EventDialogProps {
@@ -45,6 +52,11 @@ interface EventDialogProps {
     venue: string;
     capacity: number;
     category: string;
+    pricing?: {
+      adult: number;
+      seniorCitizen: number;
+      children: number;
+    };
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -70,6 +82,11 @@ export function EventDialog({
       venue: "",
       capacity: 0,
       category: "",
+      pricing: {
+        adult: 0,
+        seniorCitizen: 0,
+        children: 0,
+      },
     },
   });
 
@@ -84,6 +101,11 @@ export function EventDialog({
         venue: event.venue,
         capacity: event.capacity,
         category: event.category,
+        pricing: {
+          adult: event.pricing?.adult || 0,
+          seniorCitizen: event.pricing?.seniorCitizen || 0,
+          children: event.pricing?.children || 0,
+        },
       });
     } else if (!event && open) {
       form.reset({
@@ -94,6 +116,11 @@ export function EventDialog({
         venue: "",
         capacity: 0,
         category: "",
+        pricing: {
+          adult: 0,
+          seniorCitizen: 0,
+          children: 0,
+        },
       });
     }
   }, [event, open, form]);
@@ -133,111 +160,221 @@ export function EventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{isEditing ? "Edit Event" : "Create Event"}</DialogTitle>
         </DialogHeader>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Event title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Event description" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="venue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Venue</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Event venue" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Event category" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacity</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Event capacity" 
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+            <ScrollArea className="flex-1 pr-4">
+              <div className="space-y-6 pb-4">
+                {/* Basic Information */}
+                <div>
+                  <h3 className="text-sm font-medium">Basic Information</h3>
+                  <Separator className="my-2" />
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Event title" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Event description" 
+                              className="min-h-[100px]"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Event category" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Date, Time & Venue */}
+                <div>
+                  <h3 className="text-sm font-medium">Date, Time & Venue</h3>
+                  <Separator className="my-2" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="time"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Time</FormLabel>
+                          <FormControl>
+                            <Input type="time" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <FormField
+                      control={form.control}
+                      name="venue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Venue</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Event venue" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Capacity */}
+                <div>
+                  <h3 className="text-sm font-medium">Capacity</h3>
+                  <Separator className="my-2" />
+                  <FormField
+                    control={form.control}
+                    name="capacity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Maximum Capacity</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Event capacity" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Pricing */}
+                <div>
+                  <h3 className="text-sm font-medium">Pricing (Per Person in INR)</h3>
+                  <Separator className="my-2" />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="pricing.adult"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Adult Price</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+                              <Input 
+                                type="number" 
+                                placeholder="0" 
+                                className="pl-8"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pricing.seniorCitizen"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Senior Citizen Price</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+                              <Input 
+                                type="number" 
+                                placeholder="0" 
+                                className="pl-8"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pricing.children"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Children Price</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+                              <Input 
+                                type="number" 
+                                placeholder="0" 
+                                className="pl-8"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <p>• Set price to 0 for free admission</p>
+                    <p>• Senior citizens are typically 60+ years old</p>
+                    <p>• Children are typically under 12 years old</p>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+
+            <DialogFooter className="flex-shrink-0 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
