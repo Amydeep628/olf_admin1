@@ -35,13 +35,20 @@ interface Educator {
   id: string;
   prefix: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
   role: string;
+  contact: {
+    email: string;
+    phone: string;
+  };
   subjects: string[];
   serviceYears: string[];
   education: string[];
   achievements: string[];
-  photo: string;
+  photo?: string;
+  documents?: string[];
+  message?: string;
 }
 
 interface PaginationInfo {
@@ -135,7 +142,8 @@ export default function EducatorsPage() {
   };
 
   const getFullName = (educator: Educator) => {
-    return `${educator.prefix} ${educator.firstName} ${educator.lastName}`;
+    const middleName = educator.middleName ? ` ${educator.middleName}` : "";
+    return `${educator.prefix} ${educator.firstName}${middleName} ${educator.lastName}`;
   };
 
   const getServiceYears = (years: string[]) => {
@@ -206,7 +214,7 @@ export default function EducatorsPage() {
                         )}
                       </Avatar>
                       <div>
-                        <CardTitle>{getFullName(educator)}</CardTitle>
+                        <CardTitle className="text-base">{getFullName(educator)}</CardTitle>
                         <CardDescription>{educator.role}</CardDescription>
                       </div>
                     </div>
@@ -233,6 +241,19 @@ export default function EducatorsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
+                    {/* Contact Information */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{educator.contact.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{educator.contact.phone}</span>
+                      </div>
+                    </div>
+
+                    {/* Subjects */}
                     <div className="flex flex-wrap gap-2">
                       {educator.subjects.map((subject, index) => (
                         <Badge key={index} variant="outline">
@@ -240,6 +261,8 @@ export default function EducatorsPage() {
                         </Badge>
                       ))}
                     </div>
+
+                    {/* Education & Achievements */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -254,16 +277,20 @@ export default function EducatorsPage() {
                             ))}
                           </ul>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          <strong>Achievements:</strong>
-                          <ul className="list-disc list-inside mt-1">
-                            {educator.achievements.map((achievement, index) => (
-                              <li key={index}>{achievement}</li>
-                            ))}
-                          </ul>
-                        </div>
+                        {educator.achievements && educator.achievements.length > 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            <strong>Achievements:</strong>
+                            <ul className="list-disc list-inside mt-1">
+                              {educator.achievements.map((achievement, index) => (
+                                <li key={index}>{achievement}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     </div>
+
+                    {/* Service Years */}
                     <div className="pt-2 border-t">
                       <div className="text-sm text-muted-foreground">
                         <strong>Service Years:</strong> {getServiceYears(educator.serviceYears)}

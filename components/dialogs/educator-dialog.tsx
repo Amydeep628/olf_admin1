@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import {
   Dialog,
@@ -44,12 +44,13 @@ const educatorSchema = z.object({
     email: z.string().email("Invalid email address"),
     phone: z.string().min(1, "Phone number is required"),
   }),
-  subjects: z.array(z.object({ value: z.string() })).min(1, "At least one subject is required"),
-  serviceYears: z.array(z.object({ value: z.string() })).min(2, "Start and end years are required").max(2, "Only start and end years allowed"),
-  education: z.array(z.object({ value: z.string() })).min(1, "At least one education entry is required"),
-  achievements: z.array(z.object({ value: z.string() })).optional(),
+  subjects: z.string().min(1, "Subjects are required"),
+  startYear: z.string().min(1, "Start year is required"),
+  endYear: z.string().min(1, "End year is required"),
+  education: z.string().min(1, "Education details are required"),
+  achievements: z.string().optional(),
   photo: z.string().url("Invalid photo URL").optional().or(z.literal("")),
-  documents: z.array(z.object({ value: z.string() })).optional(),
+  documents: z.string().optional(),
   message: z.string().optional(),
 });
 
@@ -99,59 +100,15 @@ export function EducatorDialog({
         email: "",
         phone: "",
       },
-      subjects: [],
-      serviceYears: [],
-      education: [],
-      achievements: [],
+      subjects: "",
+      startYear: "",
+      endYear: "",
+      education: "",
+      achievements: "",
       photo: "",
-      documents: [],
+      documents: "",
       message: "",
     },
-  });
-
-  const {
-    fields: subjectFields,
-    append: appendSubject,
-    remove: removeSubject,
-  } = useFieldArray({
-    control: form.control,
-    name: "subjects",
-  });
-
-  const {
-    fields: serviceYearFields,
-    append: appendServiceYear,
-    remove: removeServiceYear,
-  } = useFieldArray({
-    control: form.control,
-    name: "serviceYears",
-  });
-
-  const {
-    fields: educationFields,
-    append: appendEducation,
-    remove: removeEducation,
-  } = useFieldArray({
-    control: form.control,
-    name: "education",
-  });
-
-  const {
-    fields: achievementFields,
-    append: appendAchievement,
-    remove: removeAchievement,
-  } = useFieldArray({
-    control: form.control,
-    name: "achievements",
-  });
-
-  const {
-    fields: documentFields,
-    append: appendDocument,
-    remove: removeDocument,
-  } = useFieldArray({
-    control: form.control,
-    name: "documents",
   });
 
   useEffect(() => {
@@ -166,12 +123,13 @@ export function EducatorDialog({
           email: educator.contact.email,
           phone: educator.contact.phone,
         },
-        subjects: educator.subjects.map(subject => ({ value: subject })),
-        serviceYears: educator.serviceYears.map(year => ({ value: year })),
-        education: educator.education.map(edu => ({ value: edu })),
-        achievements: educator.achievements?.map(achievement => ({ value: achievement })) || [],
+        subjects: educator.subjects.join(", "),
+        startYear: educator.serviceYears[0] || "",
+        endYear: educator.serviceYears[1] || "",
+        education: educator.education.join("\n"),
+        achievements: educator.achievements?.join("\n") || "",
         photo: educator.photo || "",
-        documents: educator.documents?.map(doc => ({ value: doc })) || [],
+        documents: educator.documents?.join("\n") || "",
         message: educator.message || "",
       });
     } else if (!educator && open) {
@@ -185,12 +143,13 @@ export function EducatorDialog({
           email: "",
           phone: "",
         },
-        subjects: [],
-        serviceYears: [],
-        education: [],
-        achievements: [],
+        subjects: "",
+        startYear: "",
+        endYear: "",
+        education: "",
+        achievements: "",
         photo: "",
-        documents: [],
+        documents: "",
         message: "",
       });
     }
@@ -209,12 +168,12 @@ export function EducatorDialog({
         lastName: values.lastName,
         role: values.role,
         contact: values.contact,
-        subjects: values.subjects.map(s => s.value).filter(s => s.trim()),
-        serviceYears: values.serviceYears.map(y => y.value).filter(y => y.trim()),
-        education: values.education.map(e => e.value).filter(e => e.trim()),
-        achievements: values.achievements?.map(a => a.value).filter(a => a.trim()) || [],
+        subjects: values.subjects.split(",").map(s => s.trim()).filter(s => s),
+        serviceYears: [values.startYear, values.endYear],
+        education: values.education.split("\n").filter(e => e.trim()),
+        achievements: values.achievements ? values.achievements.split("\n").filter(a => a.trim()) : [],
         photo: values.photo || undefined,
-        documents: values.documents?.map(d => d.value).filter(d => d.trim()) || [],
+        documents: values.documents ? values.documents.split("\n").filter(d => d.trim()) : [],
         message: values.message || undefined,
       };
       
@@ -245,62 +204,6 @@ export function EducatorDialog({
       setLoading(false);
     }
   };
-
-  const renderFieldArray = (
-    fields: any[],
-    append: (value: any) => void,
-    remove: (index: number) => void,
-    name: string,
-    label: string,
-    placeholder: string,
-    required: boolean = false
-  ) => (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium">{label} {required && <span className="text-red-500">*</span>}</h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => append({ value: "" })}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add
-        </Button>
-      </div>
-      <div className="space-y-2">
-        {fields.map((field, index) => (
-          <div key={field.id} className="flex gap-2">
-            <FormField
-              control={form.control}
-              name={`${name}.${index}.value` as any}
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input placeholder={placeholder} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => remove(index)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-        {fields.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No {label.toLowerCase()} added yet. Click "Add" to add one.
-          </p>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -458,32 +361,61 @@ export function EducatorDialog({
                 <div>
                   <h3 className="text-sm font-medium">Subjects</h3>
                   <Separator className="my-2" />
-                  {renderFieldArray(
-                    subjectFields,
-                    appendSubject,
-                    removeSubject,
-                    "subjects",
-                    "Subjects",
-                    "e.g., Mathematics, Physics",
-                    true
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="subjects"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subjects *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter subjects (comma-separated): Mathematics, Physics"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Service Years */}
                 <div>
                   <h3 className="text-sm font-medium">Service Years</h3>
                   <Separator className="my-2" />
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Add start year and end year (2 entries required)</p>
-                    {renderFieldArray(
-                      serviceYearFields,
-                      appendServiceYear,
-                      removeServiceYear,
-                      "serviceYears",
-                      "Service Years",
-                      "e.g., 2010, 2020",
-                      true
-                    )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="startYear"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Year *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="2010"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="endYear"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End Year *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="2020"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
 
@@ -491,29 +423,46 @@ export function EducatorDialog({
                 <div>
                   <h3 className="text-sm font-medium">Education</h3>
                   <Separator className="my-2" />
-                  {renderFieldArray(
-                    educationFields,
-                    appendEducation,
-                    removeEducation,
-                    "education",
-                    "Education",
-                    "e.g., M.Sc. Physics, B.Sc. Mathematics",
-                    true
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="education"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Education *</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter education details (one per line):&#10;M.Sc. Physics&#10;B.Sc. Mathematics"
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Achievements */}
                 <div>
                   <h3 className="text-sm font-medium">Achievements</h3>
                   <Separator className="my-2" />
-                  {renderFieldArray(
-                    achievementFields,
-                    appendAchievement,
-                    removeAchievement,
-                    "achievements",
-                    "Achievements",
-                    "e.g., Best Teacher Award 2018"
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="achievements"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Achievements</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter achievements (one per line):&#10;Best Teacher Award 2018&#10;Science Fair Coordinator"
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Photo */}
@@ -542,14 +491,23 @@ export function EducatorDialog({
                 <div>
                   <h3 className="text-sm font-medium">Documents</h3>
                   <Separator className="my-2" />
-                  {renderFieldArray(
-                    documentFields,
-                    appendDocument,
-                    removeDocument,
-                    "documents",
-                    "Documents",
-                    "e.g., https://example.com/docs/degree.pdf"
-                  )}
+                  <FormField
+                    control={form.control}
+                    name="documents"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Documents</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter document URLs (one per line):&#10;https://example.com/docs/degree.pdf&#10;https://example.com/docs/certificate.pdf"
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Message */}
