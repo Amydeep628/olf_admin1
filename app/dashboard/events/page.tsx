@@ -30,10 +30,10 @@ interface Event {
   title: string;
   description: string;
   date: string;
-  time: string;
+  time?: string;
   venue: string;
-  capacity: number;
-  category: string;
+  capacity?: number;
+  category?: string;
   registrationsCount: number;
   remainingCapacity: number;
   pricing?: {
@@ -84,15 +84,15 @@ export default function EventsPage() {
       // Transform the API response to match our Event interface
       const transformedEvents = data.events?.map((event: any) => ({
         id: event.id,
-        title: event.title,
-        description: event.description,
+        title: event.title || "Untitled Event",
+        description: event.description || "",
         date: event.date,
         time: event.time || "00:00", // Default time if not provided
-        venue: event.venue,
-        capacity: event.capacity || 0, // Default capacity if not provided
+        venue: event.venue || "TBD",
+        capacity: event.capacity || event.remainingCapacity || 0, // Use remainingCapacity if capacity not provided
         category: event.category || "General", // Default category if not provided
         registrationsCount: event.registrationsCount || 0,
-        remainingCapacity: event.remainingCapacity || event.capacity || 0,
+        remainingCapacity: event.remainingCapacity || 0,
         pricing: event.pricing || {
           adult: 0,
           seniorCitizen: 0,
@@ -100,6 +100,7 @@ export default function EventsPage() {
         },
       })) || [];
 
+      console.log("Transformed events:", transformedEvents); // Debug log
       setEvents(transformedEvents);
       setPagination(data.pagination || { page: 1, limit: 10, hasMore: false });
     } catch (error) {
@@ -204,6 +205,14 @@ export default function EventsPage() {
     return `₹${minPrice} - ₹${maxPrice}`;
   };
 
+  const formatEventDate = (dateString: string) => {
+    try {
+      return format(parseISO(dateString), "PPP");
+    } catch {
+      return dateString; // Return original string if parsing fails
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="flex-1 space-y-4">
@@ -256,16 +265,18 @@ export default function EventsPage() {
                         <TableRow key={event.id}>
                           <TableCell>
                             <div className="font-medium">{event.title}</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground line-clamp-2">
                               {event.description}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
-                              <div>{format(parseISO(event.date), "PPP")}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {event.time}
-                              </div>
+                              <div>{formatEventDate(event.date)}</div>
+                              {event.time && (
+                                <div className="text-sm text-muted-foreground">
+                                  {event.time}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>{event.venue}</TableCell>
