@@ -39,8 +39,8 @@ interface Educator {
   lastName: string;
   role: string;
   contact: {
-    email: string;
-    phone: string;
+    email?: string; // Made optional
+    phone?: string; // Made optional for consistency
   };
   subjects: string[];
   serviceYears: string[];
@@ -243,24 +243,35 @@ export default function EducatorsPage() {
                   <div className="space-y-4">
                     {/* Contact Information */}
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{educator.contact.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{educator.contact.phone}</span>
-                      </div>
+                      {educator.contact?.email && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{educator.contact.email}</span>
+                        </div>
+                      )}
+                      {educator.contact?.phone && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{educator.contact.phone}</span>
+                        </div>
+                      )}
+                      {!educator.contact?.email && !educator.contact?.phone && (
+                        <div className="text-sm text-muted-foreground">
+                          No contact information available
+                        </div>
+                      )}
                     </div>
 
                     {/* Subjects */}
-                    <div className="flex flex-wrap gap-2">
-                      {educator.subjects.map((subject, index) => (
-                        <Badge key={index} variant="outline">
-                          {subject}
-                        </Badge>
-                      ))}
-                    </div>
+                    {educator.subjects && educator.subjects.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {educator.subjects.map((subject, index) => (
+                          <Badge key={index} variant="outline">
+                            {subject}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Education & Achievements */}
                     <div className="space-y-2">
@@ -269,14 +280,16 @@ export default function EducatorsPage() {
                         <span className="text-sm font-medium">Education & Achievements</span>
                       </div>
                       <div className="space-y-2">
-                        <div className="text-sm text-muted-foreground">
-                          <strong>Education:</strong>
-                          <ul className="list-disc list-inside mt-1">
-                            {educator.education.map((edu, index) => (
-                              <li key={index}>{edu}</li>
-                            ))}
-                          </ul>
-                        </div>
+                        {educator.education && educator.education.length > 0 && (
+                          <div className="text-sm text-muted-foreground">
+                            <strong>Education:</strong>
+                            <ul className="list-disc list-inside mt-1">
+                              {educator.education.map((edu, index) => (
+                                <li key={index}>{edu}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                         {educator.achievements && educator.achievements.length > 0 && (
                           <div className="text-sm text-muted-foreground">
                             <strong>Achievements:</strong>
@@ -291,11 +304,13 @@ export default function EducatorsPage() {
                     </div>
 
                     {/* Service Years */}
-                    <div className="pt-2 border-t">
-                      <div className="text-sm text-muted-foreground">
-                        <strong>Service Years:</strong> {getServiceYears(educator.serviceYears)}
+                    {educator.serviceYears && educator.serviceYears.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <div className="text-sm text-muted-foreground">
+                          <strong>Service Years:</strong> {getServiceYears(educator.serviceYears)}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
