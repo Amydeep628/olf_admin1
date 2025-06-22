@@ -12,13 +12,52 @@ import { Bell, LogOut, Settings, User } from "lucide-react";
 import { ModeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 export function Header() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Handle logout logic here
-    router.push("/login");
+    try {
+      // Clear all localStorage data
+      localStorage.clear();
+      
+      // Clear all sessionStorage data
+      sessionStorage.clear();
+      
+      // Clear any specific items that might exist
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      
+      // Clear any cookies if they exist (for future use)
+      document.cookie.split(";").forEach((c) => {
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." + window.location.hostname;
+      });
+      
+      // Show success message
+      toast.success("Logged out successfully");
+      
+      // Redirect to login page
+      router.push("/login");
+      
+      // Force a page reload to ensure all state is cleared
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 100);
+      
+    } catch (error) {
+      console.error("Error during logout:", error);
+      toast.error("Error during logout");
+      
+      // Still redirect even if there's an error
+      router.push("/login");
+    }
   };
 
   return (
