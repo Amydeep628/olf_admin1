@@ -39,8 +39,8 @@ interface Educator {
   lastName: string;
   role: string;
   contact: {
-    email?: string; // Made optional
-    phone?: string; // Made optional for consistency
+    email: string;
+    phone: string;
   };
   subjects: string[];
   serviceYears: string[];
@@ -88,8 +88,30 @@ export default function EducatorsPage() {
       }
 
       const data = await response.json();
-      setEducators(data.educators);
-      setPagination(data.pagination);
+      
+      // Transform the API response to ensure required fields are present
+      const transformedEducators = data.educators?.map((educator: any) => ({
+        id: educator.id,
+        prefix: educator.prefix || "Mr",
+        firstName: educator.firstName || "",
+        middleName: educator.middleName,
+        lastName: educator.lastName || "",
+        role: educator.role || "",
+        contact: {
+          email: educator.contact?.email || "",
+          phone: educator.contact?.phone || "",
+        },
+        subjects: educator.subjects || [],
+        serviceYears: educator.serviceYears || [],
+        education: educator.education || [],
+        achievements: educator.achievements || [],
+        photo: educator.photo,
+        documents: educator.documents,
+        message: educator.message,
+      })) || [];
+
+      setEducators(transformedEducators);
+      setPagination(data.pagination || { page: 1, limit: 10, hasMore: false });
     } catch (error) {
       console.error("Error fetching educators:", error);
       toast.error("Failed to load educators");
