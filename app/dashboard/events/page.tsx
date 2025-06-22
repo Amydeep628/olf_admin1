@@ -207,6 +207,18 @@ export default function EventsPage() {
     });
   };
 
+  // Get count of events for a specific date
+  const getEventCountForDate = (date: Date) => {
+    return events.filter(event => {
+      try {
+        const eventDate = parseISO(event.date);
+        return isSameDay(eventDate, date);
+      } catch {
+        return false;
+      }
+    }).length;
+  };
+
   // Get events for selected date
   const getEventsForDate = (selectedDate: Date | undefined) => {
     if (!selectedDate) return events;
@@ -219,18 +231,6 @@ export default function EventsPage() {
         return false;
       }
     });
-  };
-
-  // Get count of events for a specific date
-  const getEventCountForDate = (date: Date) => {
-    return events.filter(event => {
-      try {
-        const eventDate = parseISO(event.date);
-        return isSameDay(eventDate, date);
-      } catch {
-        return false;
-      }
-    }).length;
   };
 
   const filteredEvents = getEventsForDate(date);
@@ -470,19 +470,25 @@ export default function EventsPage() {
                   },
                 }}
                 components={{
-                  Day: ({ date: dayDate, ...props }) => {
+                  Day: ({ date: dayDate, displayMonth, ...props }) => {
                     const eventCount = getEventCountForDate(dayDate);
                     const hasEvent = eventCount > 0;
                     
+                    // Filter out non-DOM props
+                    const { 
+                      displayMonth: _displayMonth, 
+                      ...domProps 
+                    } = props;
+                    
                     return (
                       <div
-                        {...props}
+                        {...domProps}
                         className={`
-                          ${props.className || ''}
+                          ${domProps.className || ''}
                           ${hasEvent ? 'relative' : ''}
                         `}
                         style={{
-                          ...props.style,
+                          ...domProps.style,
                           ...(hasEvent ? {
                             backgroundColor: 'hsl(var(--primary))',
                             color: 'hsl(var(--primary-foreground))',
@@ -491,7 +497,7 @@ export default function EventsPage() {
                           } : {})
                         }}
                       >
-                        {props.children}
+                        {domProps.children}
                         {hasEvent && (
                           <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                             {eventCount}
