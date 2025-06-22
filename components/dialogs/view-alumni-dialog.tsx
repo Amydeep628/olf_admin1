@@ -176,18 +176,18 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl h-[90vh]">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Alumni Profile</DialogTitle>
         </DialogHeader>
         
         {loading ? (
-          <div className="flex items-center justify-center py-8">
+          <div className="flex items-center justify-center py-8 flex-1">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : alumni ? (
-          <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-6">
+          <ScrollArea className="flex-1 h-full">
+            <div className="space-y-6 pr-4 pb-4">
               {/* Personal Information */}
               <div>
                 <h3 className="text-lg font-semibold">Personal Information</h3>
@@ -279,7 +279,7 @@ export function ViewAlumniDialog({ userId, open, onOpenChange }: ViewAlumniDialo
             </div>
           </ScrollArea>
         ) : (
-          <div className="py-8 text-center text-muted-foreground">
+          <div className="py-8 text-center text-muted-foreground flex-1">
             Failed to load alumni details
           </div>
         )}
