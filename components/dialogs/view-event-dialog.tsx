@@ -424,11 +424,11 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
                   </TabsContent>
                   
                   <TabsContent value="sponsors" className="mt-4">
-                    {renderRegistrationTable(event.registrationsByType.sponsor || [], 'sponsor')}
+                    {renderRegistrationTable(event.registrationsByType?.sponsor || [], 'sponsor')}
                   </TabsContent>
                   
                   <TabsContent value="providers" className="mt-4">
-                    {renderRegistrationTable(event.registrationsByType.serviceProvider || [], 'serviceProvider')}
+                    {renderRegistrationTable(event.registrationsByType?.serviceProvider || [], 'serviceProvider')}
                   </TabsContent>
                 </Tabs>
               </div>
