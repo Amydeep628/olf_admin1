@@ -14,10 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CalendarPlus, Users, Loader2, MoreVertical, IndianRupee, Target, TrendingUp } from "lucide-react";
+import { CalendarPlus, Users, Loader2, MoreVertical, IndianRupee, Target, TrendingUp, Eye } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { EventDialog } from "@/components/dialogs/event-dialog";
+import { ViewEventDialog } from "@/components/dialogs/view-event-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,12 +56,20 @@ interface PaginationInfo {
   hasMore: boolean;
 }
 
+interface DialogState {
+  type: "create" | "edit" | "view" | null;
+  eventId: string | null;
+}
+
 export default function EventsPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | undefined>();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialog, setDialog] = useState<DialogState>({
+    type: null,
+    eventId: null,
+  });
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     limit: 10,
@@ -129,12 +138,16 @@ export default function EventsPage() {
 
   const handleCreateEvent = () => {
     setSelectedEvent(undefined);
-    setDialogOpen(true);
+    setDialog({ type: "create", eventId: null });
   };
 
   const handleEditEvent = (event: Event) => {
     setSelectedEvent(event);
-    setDialogOpen(true);
+    setDialog({ type: "edit", eventId: event.id });
+  };
+
+  const handleViewEvent = (eventId: string) => {
+    setDialog({ type: "view", eventId });
   };
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -160,6 +173,11 @@ export default function EventsPage() {
       console.error("Error deleting event:", error);
       toast.error("Failed to delete event");
     }
+  };
+
+  const handleDialogClose = () => {
+    setDialog({ type: null, eventId: null });
+    setSelectedEvent(undefined);
   };
 
   // Calculate raised amount based on registrations and pricing
@@ -404,6 +422,10 @@ export default function EventsPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleViewEvent(event.id)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Details
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleEditEvent(event)}>
                                     Edit Event
                                   </DropdownMenuItem>
@@ -526,12 +548,24 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <EventDialog
-        event={selectedEvent}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={fetchEvents}
-      />
+      {/* Event Dialog for Create/Edit */}
+      {(dialog.type === "create" || dialog.type === "edit") && (
+        <EventDialog
+          event={selectedEvent}
+          open={true}
+          onOpenChange={handleDialogClose}
+          onSuccess={fetchEvents}
+        />
+      )}
+
+      {/* View Event Dialog */}
+      {dialog.type === "view" && dialog.eventId && (
+        <ViewEventDialog
+          eventId={dialog.eventId}
+          open={true}
+          onOpenChange={handleDialogClose}
+        />
+      )}
     </DashboardLayout>
   );
 }
