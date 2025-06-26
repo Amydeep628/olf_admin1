@@ -162,10 +162,10 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
                               (event.registrationBreakdown?.seniorCitizen  || 0 * event.pricing?.seniorCitizen  || 0 ) +
                               (event.registrationBreakdown?.children || 0 * event.pricing?.children || 0);
     
-    const sponsorRevenue = event.registrationsByType.sponsor.reduce((sum, sponsor) => 
+    const sponsorRevenue = event.registrationsByType?.sponsor.reduce((sum, sponsor) => 
       sum + (sponsor.amountSponsored || 0), 0);
     
-    const serviceProviderRevenue = event.registrationsByType.serviceProvider.reduce((sum, provider) => 
+    const serviceProviderRevenue = event.registrationsByType?.serviceProvider.reduce((sum, provider) => 
       sum + (provider.contractValue || 0), 0);
     
     return participantRevenue + sponsorRevenue + serviceProviderRevenue;
@@ -407,20 +407,20 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="participants" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      Participants ({event.registrationsByType.participant?.length || 0})
+                      Participants ({event.registrationsByType?.participant?.length || 0})
                     </TabsTrigger>
                     <TabsTrigger value="sponsors" className="flex items-center gap-2">
                       <Building className="h-4 w-4" />
-                      Sponsors ({event.registrationsByType.sponsor?.length || 0})
+                      Sponsors ({event.registrationsByType?.sponsor?.length || 0})
                     </TabsTrigger>
                     <TabsTrigger value="providers" className="flex items-center gap-2">
                       <Wrench className="h-4 w-4" />
-                      Service Providers ({event.registrationsByType.serviceProvider?.length || 0})
+                      Service Providers ({event.registrationsByType?.serviceProvider?.length || 0})
                     </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="participants" className="mt-4">
-                    {renderRegistrationTable(event.registrationsByType.participant || [], 'participant')}
+                    {renderRegistrationTable(event.registrationsByType?.participant || [], 'participant')}
                   </TabsContent>
                   
                   <TabsContent value="sponsors" className="mt-4">
