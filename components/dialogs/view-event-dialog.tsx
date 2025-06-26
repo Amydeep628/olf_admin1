@@ -158,9 +158,9 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
   const calculateRaisedAmount = () => {
     if (!event) return 0;
     
-    const participantRevenue = (event.registrationBreakdown.adult * event.pricing.adult) +
-                              (event.registrationBreakdown.seniorCitizen * event.pricing.seniorCitizen) +
-                              (event.registrationBreakdown.children * event.pricing.children);
+    const participantRevenue = (event.registrationBreakdown?.adult || 0 * event.pricing?.adult || 0) +
+                              (event.registrationBreakdown?.seniorCitizen  || 0 * event.pricing?.seniorCitizen  || 0 ) +
+                              (event.registrationBreakdown?.children || 0 * event.pricing?.children || 0);
     
     const sponsorRevenue = event.registrationsByType.sponsor.reduce((sum, sponsor) => 
       sum + (sponsor.amountSponsored || 0), 0);
