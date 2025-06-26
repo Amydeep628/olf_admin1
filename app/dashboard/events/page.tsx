@@ -30,19 +30,19 @@ interface Event {
   title: string;
   description: string;
   date: string;
-  time?: string;
+  time: string;
   venue: string;
-  capacity?: number;
-  category?: string;
+  capacity: number;
+  category: string;
   registrationsCount: number;
   remainingCapacity: number;
-  totalTargetedAmount?: number;
-  pricing?: {
+  totalTargetedAmount: number;
+  pricing: {
     adult: number;
     seniorCitizen: number;
     children: number;
   };
-  registrationBreakdown?: {
+  registrationBreakdown: {
     adult: number;
     seniorCitizen: number;
     children: number;
@@ -239,7 +239,7 @@ export default function EventsPage() {
     return price === 0 ? "Free" : `₹${price}`;
   };
 
-  const getPriceRange = (pricing?: { adult: number; seniorCitizen: number; children: number }) => {
+  const getPriceRange = (pricing: { adult: number; seniorCitizen: number; children: number }) => {
     if (!pricing) return "Free";
     
     const prices = [pricing.adult, pricing.seniorCitizen, pricing.children];
