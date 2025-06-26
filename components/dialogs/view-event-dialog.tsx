@@ -378,21 +378,21 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
                     <div className="text-sm font-medium">Adult</div>
                     <div className="text-lg font-bold">{formatCurrency(event.pricing?.adult || 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {event.registrationBreakdown.adult} registered
+                      {event.registrationBreakdown?.adult || 0} registered
                     </div>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium">Senior Citizen</div>
                     <div className="text-lg font-bold">{formatCurrency(event.pricing?.seniorCitizen || 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {event.registrationBreakdown.seniorCitizen} registered
+                      {event.registrationBreakdown?.seniorCitizen || 0} registered
                     </div>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium">Children</div>
                     <div className="text-lg font-bold">{formatCurrency(event.pricing?.children || 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {event.registrationBreakdown.children} registered
+                      {event.registrationBreakdown?.children || 0} registered
                     </div>
                   </div>
                 </div>
