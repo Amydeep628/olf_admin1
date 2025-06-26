@@ -68,25 +68,29 @@ interface EventDetails {
   time: string;
   venue: string;
   capacity: number;
-  category: string;
+  category?: string;
+  status: string;
   registrationsCount: number;
   remainingCapacity: number;
-  totalTargetedAmount: number;
+  isRegistered: boolean;
+  userRegistration: any;
+  totalTargetedAmount?: number;
   pricing: {
     adult: number;
     seniorCitizen: number;
     children: number;
   };
-  registrationBreakdown: {
-    adult: number;
-    seniorCitizen: number;
-    children: number;
-  };
+  registrations: Registration[];
   registrationsByType: {
-    participant: Registration[];
-    sponsor: Registration[];
-    serviceProvider: Registration[];
+    participant?: Registration[];
+    sponsor?: Registration[];
+    serviceProvider?: Registration[];
   };
+  updatedAt: string;
+}
+
+interface ApiResponse {
+  event: EventDetails;
 }
 
 interface ViewEventDialogProps {
@@ -117,9 +121,10 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
         );
 
         if (!response.ok) throw new Error('Failed to fetch event details');
-        const data = await response.json();
+        const data: ApiResponse = await response.json();
         
-        setEvent(data);
+        // Extract the event from the response
+        setEvent(data.event);
       } catch (error) {
         console.error('Error:', error);
         toast.error("Failed to load event details");
@@ -158,21 +163,32 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
   const calculateRaisedAmount = () => {
     if (!event) return 0;
     
-    const participantRevenue = (event.registrationBreakdown?.adult || 0 * event.pricing?.adult || 0) +
-                              (event.registrationBreakdown?.seniorCitizen  || 0 * event.pricing?.seniorCitizen  || 0 ) +
-                              (event.registrationBreakdown?.children || 0 * event.pricing?.children || 0);
+    // Calculate from actual registrations
+    let totalAmount = 0;
     
-    const sponsorRevenue = event.registrationsByType?.sponsor.reduce((sum, sponsor) => 
-      sum + (sponsor.amountSponsored || 0), 0);
+    // Add participant amounts
+    if (event.registrationsByType?.participant) {
+      totalAmount += event.registrationsByType.participant.reduce((sum, participant) => 
+        sum + (participant.amount || 0), 0);
+    }
     
-    const serviceProviderRevenue = event.registrationsByType?.serviceProvider.reduce((sum, provider) => 
-      sum + (provider.contractValue || 0), 0);
+    // Add sponsor amounts
+    if (event.registrationsByType?.sponsor) {
+      totalAmount += event.registrationsByType.sponsor.reduce((sum, sponsor) => 
+        sum + (sponsor.amountSponsored || 0), 0);
+    }
     
-    return participantRevenue + sponsorRevenue + serviceProviderRevenue;
+    // Add service provider amounts
+    if (event.registrationsByType?.serviceProvider) {
+      totalAmount += event.registrationsByType.serviceProvider.reduce((sum, provider) => 
+        sum + (provider.contractValue || 0), 0);
+    }
+    
+    return totalAmount;
   };
 
   const calculateProgress = () => {
-    if (!event || event.totalTargetedAmount === 0) return 0;
+    if (!event || !event.totalTargetedAmount || event.totalTargetedAmount === 0) return 0;
     const raised = calculateRaisedAmount();
     return Math.min((raised / event.totalTargetedAmount) * 100, 100);
   };
@@ -188,6 +204,17 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
       default:
         return <User className="h-4 w-4" />;
     }
+  };
+
+  const getRegistrationCounts = () => {
+    if (!event) return { adults: 0, children: 0, seniors: 0 };
+    
+    const participants = event.registrationsByType?.participant || [];
+    return participants.reduce((counts, participant) => ({
+      adults: counts.adults + (participant.adults || 0),
+      children: counts.children + (participant.children || 0),
+      seniors: counts.seniors + (participant.seniors || 0),
+    }), { adults: 0, children: 0, seniors: 0 });
   };
 
   const renderParticipantDetails = (registration: Registration) => (
@@ -295,6 +322,8 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
     </Table>
   );
 
+  const registrationCounts = getRegistrationCounts();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[95vh] flex flex-col">
@@ -328,33 +357,50 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
                         {event.registrationsCount} registered / {event.capacity} capacity
                       </span>
                     </div>
-                    <Badge variant="outline">{event.category}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={event.status === 'upcoming' ? 'default' : 'secondary'}>
+                        {event.status}
+                      </Badge>
+                      {event.category && <Badge variant="outline">{event.category}</Badge>}
+                    </div>
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <h4 className="font-medium mb-2">Financial Overview</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Target Amount:</span>
-                          <span className="font-medium">{formatCurrency(event.totalTargetedAmount)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Raised Amount:</span>
-                          <span className="font-medium">{formatCurrency(calculateRaisedAmount())}</span>
-                        </div>
-                        <div className="w-full bg-secondary rounded-full h-2 mt-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${calculateProgress()}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <TrendingUp className="h-3 w-3 text-green-600" />
-                          <span>{calculateProgress().toFixed(1)}% achieved</span>
+                    {event.totalTargetedAmount && event.totalTargetedAmount > 0 ? (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="font-medium mb-2">Financial Overview</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Target Amount:</span>
+                            <span className="font-medium">{formatCurrency(event.totalTargetedAmount)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Raised Amount:</span>
+                            <span className="font-medium">{formatCurrency(calculateRaisedAmount())}</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2 mt-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${calculateProgress()}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <TrendingUp className="h-3 w-3 text-green-600" />
+                            <span>{calculateProgress().toFixed(1)}% achieved</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="font-medium mb-2">Revenue Summary</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Total Revenue:</span>
+                            <span className="font-medium">{formatCurrency(calculateRaisedAmount())}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -372,27 +418,27 @@ export function ViewEventDialog({ eventId, open, onOpenChange }: ViewEventDialog
 
               {/* Pricing Information */}
               <div>
-                <h4 className="font-medium mb-3">Pricing</h4>
+                <h4 className="font-medium mb-3">Pricing & Registration Summary</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium">Adult</div>
                     <div className="text-lg font-bold">{formatCurrency(event.pricing?.adult || 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {event.registrationBreakdown?.adult || 0} registered
+                      {registrationCounts.adults} registered
                     </div>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium">Senior Citizen</div>
                     <div className="text-lg font-bold">{formatCurrency(event.pricing?.seniorCitizen || 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {event.registrationBreakdown?.seniorCitizen || 0} registered
+                      {registrationCounts.seniors} registered
                     </div>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium">Children</div>
                     <div className="text-lg font-bold">{formatCurrency(event.pricing?.children || 0)}</div>
                     <div className="text-xs text-muted-foreground">
-                      {event.registrationBreakdown?.children || 0} registered
+                      {registrationCounts.children} registered
                     </div>
                   </div>
                 </div>
