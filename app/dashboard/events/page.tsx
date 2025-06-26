@@ -469,44 +469,6 @@ export default function EventsPage() {
                     position: 'relative',
                   },
                 }}
-                components={{
-                  Day: ({ date: dayDate, displayMonth, ...props }) => {
-                    const eventCount = getEventCountForDate(dayDate);
-                    const hasEvent = eventCount > 0;
-                    
-                    // Filter out non-DOM props
-                    const { 
-                      displayMonth: _displayMonth, 
-                      ...domProps 
-                    } = props;
-                    
-                    return (
-                      <div
-                        {...domProps}
-                        className={`
-                          ${domProps.className || ''}
-                          ${hasEvent ? 'relative' : ''}
-                        `}
-                        style={{
-                          ...domProps.style,
-                          ...(hasEvent ? {
-                            backgroundColor: 'hsl(var(--primary))',
-                            color: 'hsl(var(--primary-foreground))',
-                            fontWeight: 'bold',
-                            borderRadius: '6px',
-                          } : {})
-                        }}
-                      >
-                        {domProps.children}
-                        {hasEvent && (
-                          <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                            {eventCount}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  },
-                }}
               />
               
               <div className="mt-4 space-y-3">
