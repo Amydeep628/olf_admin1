@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -41,6 +41,7 @@ const eventSchema = z.object({
     seniorCitizen: z.number().min(0, "Senior citizen price must be 0 or greater"),
     children: z.number().min(0, "Children price must be 0 or greater"),
   }),
+  eventPhoto: z.string().optional(),
 });
 
 interface EventDialogProps {
@@ -59,6 +60,7 @@ interface EventDialogProps {
       seniorCitizen: number;
       children: number;
     };
+    eventPhoto?: string;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -72,6 +74,8 @@ export function EventDialog({
   onSuccess,
 }: EventDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const isEditing = !!event;
 
   const form = useForm<z.infer<typeof eventSchema>>({
@@ -90,6 +94,7 @@ export function EventDialog({
         seniorCitizen: 0,
         children: 0,
       },
+      eventPhoto: "",
     },
   });
 
@@ -110,7 +115,13 @@ export function EventDialog({
           seniorCitizen: event.pricing?.seniorCitizen || 0,
           children: event.pricing?.children || 0,
         },
+        eventPhoto: event.eventPhoto || "",
       });
+      
+      // Set image preview if editing and has photo
+      if (event.eventPhoto) {
+        setImagePreview(event.eventPhoto);
+      }
     } else if (!event && open) {
       form.reset({
         title: "",
@@ -126,9 +137,66 @@ export function EventDialog({
           seniorCitizen: 0,
           children: 0,
         },
+        eventPhoto: "",
       });
+      setImagePreview(null);
+      setImageFile(null);
     }
   }, [event, open, form]);
+
+  // Convert file to base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+
+    try {
+      const base64 = await convertToBase64(file);
+      setImageFile(file);
+      setImagePreview(base64);
+      form.setValue("eventPhoto", base64);
+    } catch (error) {
+      console.error("Error converting image:", error);
+      toast.error("Failed to process image");
+    }
+  };
+
+  // Remove image
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    form.setValue("eventPhoto", "");
+    
+    // Reset file input
+    const fileInput = document.getElementById("event-photo") as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof eventSchema>) => {
     try {
@@ -139,13 +207,31 @@ export function EventDialog({
         ? `https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/events/${event.id}`
         : "https://7wgbsyva7h.execute-api.ap-south-1.amazonaws.com/dev/events";
 
+      // Prepare payload - only include eventPhoto if it exists
+      const payload: any = {
+        title: values.title,
+        description: values.description,
+        date: values.date,
+        time: values.time,
+        venue: values.venue,
+        capacity: values.capacity,
+        category: values.category,
+        totalTargetedAmount: values.totalTargetedAmount,
+        pricing: values.pricing,
+      };
+
+      // Only include eventPhoto if it exists and is not empty
+      if (values.eventPhoto && values.eventPhoto.trim() !== "") {
+        payload.eventPhoto = values.eventPhoto;
+      }
+
       const response = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -174,6 +260,68 @@ export function EventDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
             <ScrollArea className="flex-1 pr-4">
               <div className="space-y-6 pb-4">
+                {/* Event Cover Image */}
+                <div>
+                  <h3 className="text-sm font-medium">Event Cover Image</h3>
+                  <Separator className="my-2" />
+                  <div className="space-y-4">
+                    {/* Image Preview */}
+                    {imagePreview ? (
+                      <div className="relative">
+                        <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                          <img
+                            src={imagePreview}
+                            alt="Event cover preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={handleRemoveImage}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {imageFile ? `${imageFile.name} (${(imageFile.size / 1024 / 1024).toFixed(2)} MB)` : "Current event image"}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Upload Area */
+                      <div className="w-full">
+                        <label
+                          htmlFor="event-photo"
+                          className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <ImageIcon className="w-10 h-10 mb-3 text-gray-400" />
+                            <p className="mb-2 text-sm text-gray-500">
+                              <span className="font-semibold">Click to upload</span> event cover image
+                            </p>
+                            <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 5MB</p>
+                          </div>
+                          <input
+                            id="event-photo"
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                          />
+                        </label>
+                      </div>
+                    )}
+                    
+                    <div className="text-xs text-muted-foreground">
+                      <p>• Upload a high-quality image that represents your event</p>
+                      <p>• Recommended size: 1200x600 pixels or 2:1 aspect ratio</p>
+                      <p>• Supported formats: PNG, JPG, JPEG</p>
+                      <p>• Maximum file size: 5MB</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Basic Information */}
                 <div>
                   <h3 className="text-sm font-medium">Basic Information</h3>
