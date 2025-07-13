@@ -45,6 +45,7 @@ const formSchema = z.object({
   achievements: z.array(z.object({ value: z.string() })).optional(),
   distinguishedAlumni: z.boolean().default(false),
   batchAmbassadors: z.boolean().default(false),
+  allowPIIDisplay: z.boolean().default(true),
 });
 
 interface EditAlumniDialogProps {
@@ -72,6 +73,7 @@ export function EditAlumniDialog({
       achievements: [],
       distinguishedAlumni: false,
       batchAmbassadors: false,
+      allowPIIDisplay: true,
     },
   });
 
@@ -201,6 +203,7 @@ export function EditAlumniDialog({
 
       toast.success("Alumni details updated successfully");
       onSuccess();
+        allowPIIDisplay: profile.allowPIIDisplay !== undefined ? profile.allowPIIDisplay : true,
       onOpenChange(false);
     } catch (error) {
       console.error("Error:", error);
